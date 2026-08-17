@@ -13,12 +13,20 @@
 // und der alte wird beim Aktivieren abgeräumt.
 const FASSUNG = 'bring-home-v1';
 
+// Wo die App liegt. NICHT hart „/" — auf GitHub Pages ist es „/Bring-home/".
+// `registration.scope` weiß es, ohne dass es jemand doppelt pflegen muss.
+const WURZEL = new URL(self.registration ? self.registration.scope : './', self.location.href);
+const unter = (pfad) => new URL(pfad, WURZEL).toString();
+
 self.addEventListener('install', (e) => {
   // Sofort übernehmen — sonst liefe nach einem Update bis zum Schließen aller
   // Fenster weiterhin die alte Fassung.
   self.skipWaiting();
   e.waitUntil(
-    caches.open(FASSUNG).then((c) => c.addAll(['/', '/manifest.json', '/icons/icon-192.png'])).catch(() => undefined),
+    caches
+      .open(FASSUNG)
+      .then((c) => c.addAll([unter('./'), unter('manifest.json'), unter('icons/icon-192.png')]))
+      .catch(() => undefined),
   );
 });
 
@@ -50,7 +58,7 @@ self.addEventListener('fetch', (e) => {
         if (treffer) return treffer;
         // Eine Unterseite ohne eigenen Eintrag: die Hülle tut es auch, der
         // Router findet den Rest.
-        const huelle = await caches.match('/');
+        const huelle = await caches.match(unter('./'));
         if (huelle) return huelle;
         throw new Error('offline und nichts im Speicher');
       }

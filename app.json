@@ -24,7 +24,7 @@
       "expo-font"
     ],
     "experiments": {
-      "typedRoutes": false
+      "baseUrl": "/Bring-home"
     }
   }
 }

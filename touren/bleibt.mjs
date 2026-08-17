@@ -7,6 +7,10 @@
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 
 const BASE = process.env.BH_BASE ?? 'http://localhost:8901';
+// Der Pfad-Anteil der Basis. Auf GitHub Pages liegt die App unter
+// „/<Repo-Name>/", lokal unter „/" — die Kopfzeilen müssen beides treffen,
+// und eine Tour mit fest verdrahtetem „/manifest.json" prüft nur den einen Fall.
+const BASIS = new URL(BASE).pathname.replace(/\/$/, '');
 
 let ok = 0;
 let bad = 0;
@@ -40,12 +44,13 @@ await p.waitForTimeout(1600);
 
 console.log('\n1) Die Hülle sagt, dass sie eine App ist');
 const manifestPfad = await p.evaluate(() => document.querySelector('link[rel="manifest"]')?.getAttribute('href') ?? null);
-pruef('ein Manifest ist verlinkt', manifestPfad === '/manifest.json', String(manifestPfad));
+pruef('ein Manifest ist verlinkt', manifestPfad === `${BASIS}/manifest.json`, String(manifestPfad));
 const manifest = await (await p.request.get(`${BASE}/manifest.json`)).json();
 pruef('es steht auf „standalone"', manifest.display === 'standalone', manifest.display);
+pruef('es startet unter der richtigen Basis', manifest.start_url === `${BASIS}/`, manifest.start_url);
 pruef('und bringt ein maskierbares Icon mit', manifest.icons.some((i) => i.purpose === 'maskable'));
 const appleIcon = await p.evaluate(() => document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href') ?? null);
-pruef('iOS findet sein Icon', appleIcon === '/icons/icon-180.png', String(appleIcon));
+pruef('iOS findet sein Icon', appleIcon === `${BASIS}/icons/icon-180.png`, String(appleIcon));
 pruef('das Icon gibt es wirklich', (await p.request.get(`${BASE}/icons/icon-180.png`)).ok());
 
 console.log('\n2) Der Service Worker meldet sich an');

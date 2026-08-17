@@ -19,7 +19,13 @@ Zwei Dinge kann nur der Besitzer des Supabase-Projekts tun:
    *Anonymous sign-ins* → an. Ohne das gibt es kein `auth.uid()`, und jede
    Zugriffsregel sperrt.
 
-Und für die Veröffentlichung: **Settings → Pages → Source: GitHub Actions.**
+Und für die Veröffentlichung: **Settings → Pages → Build and deployment →
+Source: „GitHub Actions"** auswählen. Ohne das scheitert der Workflow mit
+`Failed to create deployment (404) … Ensure GitHub Pages has been enabled` —
+der Build läuft dabei durch, nur das Hochladen nicht. Danach den Workflow
+erneut starten (Actions → „Web veröffentlichen" → Re-run).
+
+Die App liegt danach unter **`https://juliandeutsch22.github.io/Bring-home/`**.
 
 ## Fahrplan
 
@@ -45,11 +51,17 @@ Design-Systems ist thematisch neutral.
 npx tsc --noEmit
 npx jest --ci
 npx eslint src --ext .ts,.tsx
-npm run build:web                # Export + PWA-Angaben in die index.html
-npx serve dist -s -l 8901        # in einem zweiten Fenster
-node touren/rundgang.mjs
-node touren/bleibt.mjs
+npm run build:web                # Export + Manifest + Kopfzeilen + 404-Rückfall
+node touren/pages-nachbau.mjs    # in einem zweiten Fenster
+BH_BASE=http://localhost:8903/Bring-home node touren/rundgang.mjs
+BH_BASE=http://localhost:8903/Bring-home node touren/bleibt.mjs
 ```
+
+**Immer gegen `pages-nachbau.mjs` prüfen, nicht gegen `serve`.** Der Nachbau
+bildet die zwei Eigenheiten von GitHub Pages ab, an denen die App sonst erst
+in freier Wildbahn scheitert: den Unterpfad `/Bring-home/` und die Auslieferung
+von `404.html` für unbekannte Adressen. Mit `serve -s` sieht alles gut aus und
+ist es nicht.
 
 `touren/rundgang.mjs` geht die drei Wege durch, für die es die App gibt, und
 prüft jeweils die sichtbare FOLGE — nicht, ob ein Knopf existiert.

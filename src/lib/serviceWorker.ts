@@ -5,10 +5,17 @@
 // Ereignis, über das jemand informiert werden möchte.
 import { Platform } from 'react-native';
 
+import { BASIS, unterBasis } from '@/lib/basis';
+
 export function serviceWorkerAnmelden(): void {
   if (Platform.OS !== 'web') return;
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-  const anmelden = () => void navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+  // Pfad UND Geltungsbereich müssen unter der Basis liegen: ein Service Worker
+  // darf nur für Adressen antworten, die unterhalb seines eigenen Ortes liegen.
+  const anmelden = () =>
+    void navigator.serviceWorker
+      .register(unterBasis('sw.js'), { scope: `${BASIS}/` })
+      .catch(() => undefined);
   // Erst nach dem Laden — vorher konkurriert die Anmeldung mit dem Bundle.
   // ABER: dieses Modul läuft womöglich erst, wenn `load` längst durch ist
   // (das Bundle IST der Grund, warum es dauert). Wer sich dann nur auf den
