@@ -10,11 +10,13 @@
 //  · „Warten auf" für alles, was bei jemand anderem liegt (Hausverwaltung,
 //    Handwerker). Es verschwindet damit aus dem Offenen, ohne verloren zu
 //    gehen — und mahnt nicht, weil man selbst nichts tun kann.
-import { Check, Hammer, PauseCircle, Plus, Trash2 } from 'lucide-react-native';
+import { Hammer, PauseCircle, Plus, Trash2 } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { DisclosureChevron } from '@/components/DisclosureChevron';
+import { Haken } from '@/components/Haken';
+import { Listenzeile, Rutscht } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PressableScale } from '@/components/PressableScale';
 import { Reveal } from '@/components/Reveal';
@@ -88,7 +90,7 @@ export default function WohnungScreen() {
             {art === 'wartend' ? (
               <PauseCircle size={22} color={colors.accentA} strokeWidth={2} />
             ) : (
-              <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.border3 }} />
+              <Haken an={false} rund />
             )}
           </PressableScale>
           <PressableScale
@@ -120,20 +122,22 @@ export default function WohnungScreen() {
         </View>
 
         {aufgeklappt && (
-          <View style={{ gap: Spacing.sm, paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
-            <Feld
-              label={`Wer kümmert sich um ${a.titel}`}
-              platzhalter="Wer macht das?"
-              wert={a.person}
-              onSichern={(v) => aendern.mutate({ id: a.id, patch: { person: v } })}
-            />
-            <Feld
-              label={`Worauf ${a.titel} wartet`}
-              platzhalter="Wartet auf … (dann ruht sie)"
-              wert={a.wartetAuf}
+          <Rutscht>
+            <View style={{ gap: Spacing.sm, paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
+              <Feld
+                label={`Wer kümmert sich um ${a.titel}`}
+                platzhalter="Wer macht das?"
+                wert={a.person}
+                onSichern={(v) => aendern.mutate({ id: a.id, patch: { person: v } })}
+              />
+              <Feld
+                label={`Worauf ${a.titel} wartet`}
+                platzhalter="Wartet auf … (dann ruht sie)"
+                wert={a.wartetAuf}
               onSichern={(v) => aendern.mutate({ id: a.id, patch: { wartetAuf: v } })}
-            />
-          </View>
+              />
+            </View>
+          </Rutscht>
         )}
       </View>
     );
@@ -188,10 +192,10 @@ export default function WohnungScreen() {
         ) : (
           <GlassPanel>
             {offen.map((a, i) => (
-              <View key={a.id}>
+              <Listenzeile key={a.id}>
                 {i > 0 && <Seam marginVertical={2} />}
                 {zeile(a, 'offen')}
-              </View>
+              </Listenzeile>
             ))}
           </GlassPanel>
         )}
@@ -217,10 +221,10 @@ export default function WohnungScreen() {
             {zeigeWartend && (
               <GlassPanel style={{ marginTop: Spacing.xs }}>
                 {wartend.map((a, i) => (
-                  <View key={a.id}>
+                  <Listenzeile key={a.id}>
                     {i > 0 && <Seam marginVertical={2} />}
                     {zeile(a, 'wartend')}
-                  </View>
+                  </Listenzeile>
                 ))}
               </GlassPanel>
             )}
@@ -245,7 +249,7 @@ export default function WohnungScreen() {
             {zeigeErledigt && (
               <GlassPanel style={{ marginTop: Spacing.xs }}>
                 {gezeigtErledigt.map((a, i) => (
-                  <View key={a.id}>
+                  <Listenzeile key={a.id}>
                     {i > 0 && <Seam marginVertical={2} />}
                     <PressableScale
                       accessibilityLabel={`${a.titel} wieder öffnen`}
@@ -256,21 +260,10 @@ export default function WohnungScreen() {
                       pressedScale={0.99}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm + 2 }}
                     >
-                      <View
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: 11,
-                          backgroundColor: colors.accentA,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Check size={14} color="#FFFFFF" strokeWidth={3} />
-                      </View>
+                      <Haken an rund />
                       <Type variant="body" tone="text3" style={{ flex: 1 }} numberOfLines={1}>{a.titel}</Type>
                     </PressableScale>
-                  </View>
+                  </Listenzeile>
                 ))}
                 {restErledigt > 0 && (
                   <Type variant="caption" tone="text3" style={{ paddingTop: Spacing.sm }}>

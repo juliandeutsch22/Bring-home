@@ -16,6 +16,7 @@ import React, { useMemo, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { GlassPanel } from '@/components/GlassPanel';
+import { Listenzeile, Rutscht } from '@/components/Listenzeile';
 import { PressableScale } from '@/components/PressableScale';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
@@ -131,7 +132,7 @@ export default function EssenScreen() {
               const fehlen = fehlendeZutaten(meine, artikel ?? []);
               const offen = offenerWunsch === w.id;
               return (
-                <View key={w.id}>
+                <Listenzeile key={w.id}>
                   {i > 0 && <Seam marginVertical={2} />}
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
                     <PressableScale
@@ -172,9 +173,11 @@ export default function EssenScreen() {
                   </View>
 
                   {offen && (
-                    <View style={{ gap: Spacing.sm, paddingBottom: Spacing.sm }}>
+                    <Rutscht>
+                      <View style={{ gap: Spacing.sm, paddingBottom: Spacing.sm }}>
                       {meine.map((z) => (
-                        <View key={z.id} style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingLeft: Spacing.xl }}>
+                        <Listenzeile key={z.id}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingLeft: Spacing.xl }}>
                           <Type variant="body" tone="text2" style={{ flex: 1 }} numberOfLines={1}>{z.text}</Type>
                           <PressableScale
                             accessibilityLabel={`Zutat ${z.text} entfernen`}
@@ -186,7 +189,8 @@ export default function EssenScreen() {
                           >
                             <Trash2 size={14} color={colors.text3} strokeWidth={2} />
                           </PressableScale>
-                        </View>
+                          </View>
+                        </Listenzeile>
                       ))}
 
                       <View style={[feldStil, { marginLeft: Spacing.xl }]}>
@@ -233,9 +237,10 @@ export default function EssenScreen() {
                           Alles steht schon auf der Einkaufsliste.
                         </Type>
                       )}
-                    </View>
+                      </View>
+                    </Rutscht>
                   )}
-                </View>
+                </Listenzeile>
               );
             })}
           </GlassPanel>

@@ -34,6 +34,7 @@ Die App liegt danach unter **`https://juliandeutsch22.github.io/Bring-home/`**.
 | 0 ✅ | Grundstein: Toolchain, Design-System, eine Hülle, Verifikation |
 | 1 ✅ | Die drei Listen, lokal benutzbar |
 | 2 ✅ | Bleibt: Speicher, Manifest, Icons, Service Worker, offline |
+| 2.1 ✅ | Bewegung und Haptik |
 | 3 | Teilen: Supabase, Beitritt per Code, Sync |
 | 4 | Live: Änderungen erscheinen, während beide offen haben |
 | 5 | Feinschliff: Mengen, Vorschläge, Undo, mehrere Listen |

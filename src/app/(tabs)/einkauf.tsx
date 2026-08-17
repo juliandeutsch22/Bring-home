@@ -9,11 +9,13 @@
 //    Wagen leert — ein Fehlgriff ist damit ein Tipp, keine Rekonstruktion.
 //  · Ein Artikel, den es schon gibt, wird nicht verdoppelt. Wer „Milch" ein
 //    zweites Mal tippt, meint dieselbe Milch.
-import { Check, Plus, ShoppingBasket, Trash2 } from 'lucide-react-native';
+import { Plus, ShoppingBasket, Trash2 } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { DisclosureChevron } from '@/components/DisclosureChevron';
+import { Haken } from '@/components/Haken';
+import { Listenzeile, Rutscht } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PressableScale } from '@/components/PressableScale';
 import { Reveal } from '@/components/Reveal';
@@ -124,7 +126,7 @@ export default function EinkaufScreen() {
         ) : (
           <GlassPanel>
             {offen.map((a, i) => (
-              <View key={a.id}>
+              <Listenzeile key={a.id}>
                 {i > 0 && <Seam marginVertical={2} />}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
                   <PressableScale
@@ -137,7 +139,7 @@ export default function EinkaufScreen() {
                     style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1, paddingVertical: Spacing.sm + 2 }}
                   >
                     {/* Nacktes Kästchen: getönt heißt in diesem System „an". */}
-                    <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: colors.border3 }} />
+                    <Haken an={false} />
                     <View style={{ flex: 1 }}>
                       <Type variant="body" numberOfLines={1}>{a.text}</Type>
                       {a.vonWem && <Type variant="caption" tone="text3" numberOfLines={1}>{`von ${a.vonWem}`}</Type>}
@@ -155,7 +157,7 @@ export default function EinkaufScreen() {
                     <Trash2 size={16} color={colors.text3} strokeWidth={2} />
                   </PressableScale>
                 </View>
-              </View>
+              </Listenzeile>
             ))}
           </GlassPanel>
         )}
@@ -163,7 +165,7 @@ export default function EinkaufScreen() {
 
       {imWagen.length > 0 && (
         <Reveal delay={120}>
-          <View>
+          <Rutscht>
             <Seam variant="ornament" marginVertical={Spacing.md} />
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <PressableScale
@@ -193,7 +195,7 @@ export default function EinkaufScreen() {
             {zeigeWagen && (
               <GlassPanel style={{ marginTop: Spacing.xs }}>
                 {gezeigterWagen.map((a, i) => (
-                  <View key={a.id}>
+                  <Listenzeile key={a.id}>
                     {i > 0 && <Seam marginVertical={2} />}
                     <PressableScale
                       accessibilityLabel={`${a.text} zurück auf die Liste`}
@@ -204,21 +206,10 @@ export default function EinkaufScreen() {
                       pressedScale={0.99}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm + 2 }}
                     >
-                      <View
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: 6,
-                          backgroundColor: colors.accentA,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Check size={14} color="#FFFFFF" strokeWidth={3} />
-                      </View>
+                      <Haken an />
                       <Type variant="body" tone="text3" style={{ flex: 1 }} numberOfLines={1}>{a.text}</Type>
                     </PressableScale>
-                  </View>
+                  </Listenzeile>
                 ))}
                 {restWagen > 0 && (
                   <Type variant="caption" tone="text3" style={{ paddingTop: Spacing.sm }}>
@@ -227,7 +218,7 @@ export default function EinkaufScreen() {
                 )}
               </GlassPanel>
             )}
-          </View>
+          </Rutscht>
         </Reveal>
       )}
     </Screen>
