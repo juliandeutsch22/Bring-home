@@ -1,17 +1,17 @@
 // wohnung.tsx — was in der Wohnung liegen bleibt.
 //
 // Aufgaben wie in Stoa, aber bewusst SCHLANKER: keine Projekte, keine
-// Wiederholungen, keine Lebensspanne. Was hier steht, ist eine Sache, die
-// jemand irgendwann macht — „Filter tauschen", „Vermieter anrufen".
+// Wiederholungen, keine Lebensspannen. Das wäre Stoa ein zweites Mal.
 //
-// Zwei Dinge behält es aus Stoa, weil sie in einer geteilten Wohnung erst
-// richtig Sinn ergeben:
-//  · Eine Aufgabe kann an einer PERSON hängen — bei einem Zusammenleben ist
-//    „wer macht das?" die eigentliche Frage.
+// Zwei Dinge sind geblieben, weil sie in einer geteilten Wohnung erst richtig
+// Sinn ergeben:
+//  · Eine Aufgabe kann an einer PERSON hängen — „wer macht das?" ist dort die
+//    eigentliche Frage. Frei getippt, kein Konto.
 //  · „Warten auf" für alles, was bei jemand anderem liegt (Hausverwaltung,
-//    Handwerker). Es verschwindet aus dem Offenen, ohne verloren zu gehen.
-import { Hammer, PauseCircle } from 'lucide-react-native';
-import React, { useState } from 'react';
+//    Handwerker). Es verschwindet damit aus dem Offenen, ohne verloren zu
+//    gehen — und mahnt nicht, weil man selbst nichts tun kann.
+import { Check, Hammer, PauseCircle, Plus, Trash2 } from 'lucide-react-native';
+import React, { useMemo, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { DisclosureChevron } from '@/components/DisclosureChevron';
@@ -20,24 +20,124 @@ import { PressableScale } from '@/components/PressableScale';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { Seam } from '@/components/Seam';
+import { EmptyState } from '@/components/StateView';
 import { Type } from '@/components/Type';
-import { hapticSelect } from '@/lib/haptics';
+import type { Aufgabe } from '@/data/types';
+import {
+  useAufgabeAendern,
+  useAufgabeAnlegen,
+  useAufgabeLoeschen,
+  useAufgabeUmschalten,
+  useAufgaben,
+} from '@/data/queries';
+import { hapticSelect, hapticSuccess } from '@/lib/haptics';
+import { kuerze, teileAufgaben } from '@/lib/listenLogik';
 import { webNoOutline } from '@/theme/layout';
 import { useColors } from '@/theme/ThemeProvider';
 import { R, Spacing, T } from '@/theme/theme.tokens';
 
-/** Attrappen für Etappe 0 — sie kommen in Etappe 1 aus der Datenschicht. */
-const OFFEN = [
-  { id: '1', titel: 'Filter der Dunstabzugshaube tauschen', person: null as string | null },
-  { id: '2', titel: 'Regal im Flur anbringen', person: 'Anna' },
-  { id: '3', titel: 'Fahrräder aus dem Keller holen', person: null },
-];
-const WARTEND = [{ id: '4', titel: 'Heizung entlüften', person: 'Hausverwaltung', worauf: 'Termin' }];
-
 export default function WohnungScreen() {
   const colors = useColors();
+  const { data: aufgaben } = useAufgaben();
+  const anlegen = useAufgabeAnlegen();
+  const umschalten = useAufgabeUmschalten();
+  const aendern = useAufgabeAendern();
+  const loeschen = useAufgabeLoeschen();
+
   const [entwurf, setEntwurf] = useState('');
   const [zeigeWartend, setZeigeWartend] = useState(false);
+  const [zeigeErledigt, setZeigeErledigt] = useState(false);
+  /** Welche Aufgabe gerade ihre Zeile aufgeklappt hat (Person / Warten auf). */
+  const [offeneId, setOffeneId] = useState<string | null>(null);
+
+  const { offen, wartend, erledigt } = useMemo(() => teileAufgaben(aufgaben ?? []), [aufgaben]);
+  const [gezeigtErledigt, restErledigt] = useMemo(() => kuerze(erledigt), [erledigt]);
+
+  const hinzufuegen = () => {
+    const titel = entwurf.trim();
+    if (!titel) return;
+    hapticSuccess();
+    anlegen.mutate({ titel });
+    setEntwurf('');
+  };
+
+  const feldStil = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: Spacing.sm,
+    borderRadius: R.lg,
+    borderWidth: 1,
+    borderColor: colors.chipBorder,
+    backgroundColor: colors.sunk,
+    paddingHorizontal: Spacing.md,
+  };
+
+  const zeile = (a: Aufgabe, art: 'offen' | 'wartend') => {
+    const aufgeklappt = offeneId === a.id;
+    return (
+      <View key={a.id}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+          <PressableScale
+            accessibilityLabel={`${a.titel} erledigen`}
+            onPress={() => {
+              hapticSelect();
+              umschalten.mutate({ id: a.id, erledigt: false });
+            }}
+            style={{ paddingVertical: Spacing.sm + 2 }}
+          >
+            {art === 'wartend' ? (
+              <PauseCircle size={22} color={colors.accentA} strokeWidth={2} />
+            ) : (
+              <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.border3 }} />
+            )}
+          </PressableScale>
+          <PressableScale
+            accessibilityLabel={aufgeklappt ? `${a.titel} zuklappen` : `${a.titel} bearbeiten`}
+            onPress={() => {
+              hapticSelect();
+              setOffeneId(aufgeklappt ? null : a.id);
+            }}
+            pressedScale={0.99}
+            style={{ flex: 1, paddingVertical: Spacing.sm + 2 }}
+          >
+            <Type variant="body" numberOfLines={2}>{a.titel}</Type>
+            {(a.person || a.wartetAuf) && (
+              <Type variant="caption" tone="text3" numberOfLines={1}>
+                {[a.person, a.wartetAuf ? `wartet auf ${a.wartetAuf}` : null].filter(Boolean).join(' · ')}
+              </Type>
+            )}
+          </PressableScale>
+          <PressableScale
+            accessibilityLabel={`${a.titel} löschen`}
+            onPress={() => {
+              hapticSelect();
+              loeschen.mutate(a.id);
+            }}
+            style={{ padding: Spacing.xs }}
+          >
+            <Trash2 size={16} color={colors.text3} strokeWidth={2} />
+          </PressableScale>
+        </View>
+
+        {aufgeklappt && (
+          <View style={{ gap: Spacing.sm, paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
+            <Feld
+              label={`Wer kümmert sich um ${a.titel}`}
+              platzhalter="Wer macht das?"
+              wert={a.person}
+              onSichern={(v) => aendern.mutate({ id: a.id, patch: { person: v } })}
+            />
+            <Feld
+              label={`Worauf ${a.titel} wartet`}
+              platzhalter="Wartet auf … (dann ruht sie)"
+              wert={a.wartetAuf}
+              onSichern={(v) => aendern.mutate({ id: a.id, patch: { wartetAuf: v } })}
+            />
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <Screen>
@@ -47,27 +147,17 @@ export default function WohnungScreen() {
           <Type variant="title" style={{ flex: 1 }}>Wohnung</Type>
         </View>
         <Type variant="caption" tone="text3" style={{ marginTop: 2 }} tabular>
-          {`${OFFEN.length} offen · ${WARTEND.length} wartet`}
+          {wartend.length > 0 ? `${offen.length} offen · ${wartend.length} wartet` : `${offen.length} offen`}
         </Type>
       </Reveal>
 
       <Reveal delay={60}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.sm,
-            borderRadius: R.lg,
-            borderWidth: 1,
-            borderColor: colors.chipBorder,
-            backgroundColor: colors.sunk,
-            paddingHorizontal: Spacing.md,
-          }}
-        >
+        <View style={feldStil}>
           <TextInput
             accessibilityLabel="Aufgabe hinzufügen"
             value={entwurf}
             onChangeText={setEntwurf}
+            onSubmitEditing={hinzufuegen}
             placeholder="Was steht an?"
             placeholderTextColor={colors.text3}
             returnKeyType="done"
@@ -76,67 +166,177 @@ export default function WohnungScreen() {
               webNoOutline,
             ]}
           />
+          <PressableScale
+            accessibilityLabel="Aufgabe anlegen"
+            onPress={hinzufuegen}
+            style={{ padding: Spacing.xs, opacity: entwurf.trim() ? 1 : 0.35 }}
+          >
+            <Plus size={20} color={colors.accentA} strokeWidth={2.4} />
+          </PressableScale>
         </View>
       </Reveal>
 
       <Reveal delay={90}>
-        <GlassPanel>
-          {OFFEN.map((a, i) => (
-            <View key={a.id}>
-              {i > 0 && <Seam marginVertical={2} />}
-              <PressableScale
-                accessibilityLabel={`${a.titel} erledigen`}
-                onPress={() => hapticSelect()}
-                pressedScale={0.99}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm + 2 }}
-              >
-                <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.border3 }} />
-                <View style={{ flex: 1 }}>
-                  <Type variant="body" numberOfLines={2}>{a.titel}</Type>
-                  {a.person && <Type variant="caption" tone="text3" numberOfLines={1}>{a.person}</Type>}
-                </View>
-              </PressableScale>
-            </View>
-          ))}
-        </GlassPanel>
+        {offen.length === 0 ? (
+          <GlassPanel>
+            <EmptyState
+              icon={<Hammer size={20} color={colors.accentA} strokeWidth={2} />}
+              title="Nichts offen"
+              body="Was in der Wohnung liegen bleibt, kommt oben hinein. Tippe eine Aufgabe an, um sie jemandem zuzuordnen."
+            />
+          </GlassPanel>
+        ) : (
+          <GlassPanel>
+            {offen.map((a, i) => (
+              <View key={a.id}>
+                {i > 0 && <Seam marginVertical={2} />}
+                {zeile(a, 'offen')}
+              </View>
+            ))}
+          </GlassPanel>
+        )}
       </Reveal>
 
       {/* Wartendes steht unter dem Offenen und eingeklappt: es ist da, aber es
           ist nichts, woran man gerade arbeiten kann. */}
-      <Reveal delay={120}>
-        <View>
-          <Seam variant="ornament" marginVertical={Spacing.md} />
-          <PressableScale
-            accessibilityLabel={zeigeWartend ? 'Wartendes ausblenden' : 'Wartendes anzeigen'}
-            onPress={() => {
-              hapticSelect();
-              setZeigeWartend((v) => !v);
-            }}
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-          >
-            <Type variant="eyebrow" tone="text3">Warten auf · {WARTEND.length}</Type>
-            <DisclosureChevron open={zeigeWartend} color={colors.text3} />
-          </PressableScale>
-          {zeigeWartend && (
-            <GlassPanel style={{ marginTop: Spacing.xs }}>
-              {WARTEND.map((a, i) => (
-                <View key={a.id}>
-                  {i > 0 && <Seam marginVertical={2} />}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm + 2 }}>
-                    <PauseCircle size={20} color={colors.accentA} strokeWidth={2} />
-                    <View style={{ flex: 1 }}>
-                      <Type variant="body" numberOfLines={2}>{a.titel}</Type>
-                      <Type variant="caption" tone="text3" numberOfLines={1}>
-                        {`${a.person} · wartet auf ${a.worauf}`}
-                      </Type>
-                    </View>
+      {wartend.length > 0 && (
+        <Reveal delay={120}>
+          <View>
+            <Seam variant="ornament" marginVertical={Spacing.md} />
+            <PressableScale
+              accessibilityLabel={zeigeWartend ? 'Wartendes ausblenden' : 'Wartendes anzeigen'}
+              onPress={() => {
+                hapticSelect();
+                setZeigeWartend((v) => !v);
+              }}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+            >
+              <Type variant="eyebrow" tone="text3">Warten auf · {wartend.length}</Type>
+              <DisclosureChevron open={zeigeWartend} color={colors.text3} />
+            </PressableScale>
+            {zeigeWartend && (
+              <GlassPanel style={{ marginTop: Spacing.xs }}>
+                {wartend.map((a, i) => (
+                  <View key={a.id}>
+                    {i > 0 && <Seam marginVertical={2} />}
+                    {zeile(a, 'wartend')}
                   </View>
-                </View>
-              ))}
-            </GlassPanel>
-          )}
-        </View>
-      </Reveal>
+                ))}
+              </GlassPanel>
+            )}
+          </View>
+        </Reveal>
+      )}
+
+      {erledigt.length > 0 && (
+        <Reveal delay={150}>
+          <View>
+            <PressableScale
+              accessibilityLabel={zeigeErledigt ? 'Erledigtes ausblenden' : 'Erledigtes anzeigen'}
+              onPress={() => {
+                hapticSelect();
+                setZeigeErledigt((v) => !v);
+              }}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.md }}
+            >
+              <Type variant="eyebrow" tone="text3">Erledigt · {erledigt.length}</Type>
+              <DisclosureChevron open={zeigeErledigt} color={colors.text3} />
+            </PressableScale>
+            {zeigeErledigt && (
+              <GlassPanel style={{ marginTop: Spacing.xs }}>
+                {gezeigtErledigt.map((a, i) => (
+                  <View key={a.id}>
+                    {i > 0 && <Seam marginVertical={2} />}
+                    <PressableScale
+                      accessibilityLabel={`${a.titel} wieder öffnen`}
+                      onPress={() => {
+                        hapticSelect();
+                        umschalten.mutate({ id: a.id, erledigt: true });
+                      }}
+                      pressedScale={0.99}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm + 2 }}
+                    >
+                      <View
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
+                          backgroundColor: colors.accentA,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Check size={14} color="#FFFFFF" strokeWidth={3} />
+                      </View>
+                      <Type variant="body" tone="text3" style={{ flex: 1 }} numberOfLines={1}>{a.titel}</Type>
+                    </PressableScale>
+                  </View>
+                ))}
+                {restErledigt > 0 && (
+                  <Type variant="caption" tone="text3" style={{ paddingTop: Spacing.sm }}>
+                    {`… und ${restErledigt} weitere`}
+                  </Type>
+                )}
+              </GlassPanel>
+            )}
+          </View>
+        </Reveal>
+      )}
     </Screen>
+  );
+}
+
+/**
+ * Ein Textfeld, das seinen Wert beim Abschicken UND beim Verlassen sichert.
+ *
+ * Warum beides: `onEndEditing` allein reicht nicht — auf iOS feuert es, im Web
+ * nicht zuverlässig. Da die App zuerst im Browser lebt, wäre das Feld dort
+ * still wirkungslos gewesen: man tippt „Termin", nichts passiert, und die
+ * Aufgabe wartet nie. Deshalb `onSubmitEditing` (Enter) plus `onBlur`
+ * (woanders hingetippt).
+ */
+function Feld({
+  label,
+  platzhalter,
+  wert,
+  onSichern,
+}: {
+  label: string;
+  platzhalter: string;
+  wert: string | null;
+  onSichern: (v: string | null) => void;
+}) {
+  const colors = useColors();
+  const [entwurf, setEntwurf] = useState(wert ?? '');
+  const sichern = () => {
+    const sauber = entwurf.trim();
+    if (sauber === (wert ?? '')) return;
+    onSichern(sauber || null);
+  };
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        borderRadius: R.lg,
+        borderWidth: 1,
+        borderColor: colors.chipBorder,
+        backgroundColor: colors.sunk,
+        paddingHorizontal: Spacing.md,
+      }}
+    >
+      <TextInput
+        accessibilityLabel={label}
+        value={entwurf}
+        onChangeText={setEntwurf}
+        onSubmitEditing={sichern}
+        onBlur={sichern}
+        placeholder={platzhalter}
+        placeholderTextColor={colors.text3}
+        returnKeyType="done"
+        style={[{ flex: 1, fontSize: T.md, color: colors.text, paddingVertical: Spacing.sm, minHeight: 22 }, webNoOutline]}
+      />
+    </View>
   );
 }

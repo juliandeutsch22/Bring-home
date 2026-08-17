@@ -1,0 +1,154 @@
+// rundgang.mjs — Etappe 1: kann man die App wirklich benutzen?
+//
+// Geprüft werden die drei Wege, für die es die App gibt, jeweils bis zur
+// sichtbaren Folge — nicht, ob ein Knopf existiert, sondern ob danach das
+// Richtige dasteht.
+//
+// Wichtig für den Web-Lauf: die Daten liegen im Speicher, ein `goto` löscht
+// also alles. Zwischen Tabs wird deshalb NUR über die Leiste gewechselt.
+import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+
+const BASE = process.env.BH_BASE ?? 'http://localhost:8901';
+
+let ok = 0;
+let bad = 0;
+const pruef = (name, wahr, extra = '') => {
+  if (wahr) { ok += 1; console.log(`  ✓ ${name}`); }
+  else { bad += 1; console.log(`  ✗ ${name}${extra ? ` — ${extra}` : ''}`); }
+};
+
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const p = await b.newPage({ viewport: { width: 430, height: 932 } });
+const fehler = [];
+p.on('pageerror', (e) => fehler.push(String(e)));
+p.on('console', (m) => { if (m.type() === 'error') fehler.push(m.text()); });
+
+await p.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+await p.waitForTimeout(1600);
+
+const text = () => p.evaluate(() => document.body.innerText);
+/** Eyebrows stehen in VERSALIEN (Inschrift) — deshalb ohne Groß/Klein prüfen. */
+const enthaelt = (t, nadel) => t.toLowerCase().includes(nadel.toLowerCase());
+/** Sichtbares Element mit diesem Label — expo-router lässt alle Tabs montiert. */
+const griff = async (label) => {
+  const el = await p.evaluateHandle((l) => {
+    const alle = [...document.querySelectorAll('[aria-label]')];
+    const genau = alle.filter((e) => e.getAttribute('aria-label') === l);
+    const kandidaten = genau.length > 0 ? genau : alle.filter((e) => (e.getAttribute('aria-label') ?? '').includes(l));
+    return kandidaten.find((e) => {
+      const r = e.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight;
+    }) ?? null;
+  }, label);
+  const e = el.asElement();
+  if (!e) throw new Error(`nicht sichtbar: ${label}`);
+  return e;
+};
+const tippe = async (label) => {
+  const e = await griff(label);
+  await e.click();
+  await p.waitForTimeout(500);
+};
+const schreibe = async (label, wert) => {
+  const e = await griff(label);
+  await e.click();
+  await e.fill(wert);
+  await e.press('Enter');
+  await p.waitForTimeout(600);
+};
+const tab = async (name) => {
+  const box = await p.evaluate((n) => {
+    const k = [...document.querySelectorAll('[role="tab"]')].filter((e) => (e.getAttribute('aria-label') ?? '').includes(n));
+    const el = k.find((e) => { const r = e.getBoundingClientRect(); return r.width > 4 && r.height > 4; });
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }, name);
+  if (!box) throw new Error(`Tab fehlt: ${name}`);
+  await p.mouse.click(box.x, box.y);
+  await p.waitForTimeout(1000);
+};
+
+console.log('\n1) Einkauf: hinzufügen, abhaken, zurückholen');
+await schreibe('Etwas hinzufügen', 'Milch');
+await schreibe('Etwas hinzufügen', 'Brot');
+let t = await text();
+pruef('beide stehen auf der Liste', t.includes('Milch') && t.includes('Brot'), t.slice(0, 400));
+pruef('die Zählung stimmt', t.includes('2 Sachen fehlen'), t.slice(0, 300));
+
+// Derselbe Name ein zweites Mal darf nicht verdoppeln.
+await schreibe('Etwas hinzufügen', '  milch ');
+const milchZahl = await p.evaluate(() =>
+  (document.body.innerText.match(/Milch/g) ?? []).length);
+pruef('derselbe Name legt KEINEN zweiten Artikel an', milchZahl === 1, String(milchZahl));
+
+await tippe('Milch abhaken');
+t = await text();
+pruef('abgehakt verschwindet aus dem Offenen', t.includes('1 Sache fehlt'), t.slice(0, 300));
+pruef('und taucht im Wagen auf', enthaelt(t, 'Im Wagen · 1'), t.slice(0, 400));
+
+await tippe('Wagen ansehen');
+await tippe('Milch zurück auf die Liste');
+t = await text();
+pruef('aus dem Wagen zurück heißt wieder offen', t.includes('2 Sachen fehlen'), t.slice(0, 300));
+
+console.log('\n2) Essen: Wunsch, Zutaten, Übernahme auf die Einkaufsliste');
+await tab('Essen');
+await schreibe('Essenswunsch eintragen', 'Linsen mit Spätzle');
+t = await text();
+pruef('der Wunsch steht da', t.includes('Linsen mit Spätzle'), t.slice(0, 400));
+
+await tippe('Linsen mit Spätzle öffnen');
+await schreibe('Zutat hinzufügen', 'Linsen');
+await schreibe('Zutat hinzufügen', 'Spätzle');
+await schreibe('Zutat hinzufügen', 'Brot');
+t = await text();
+pruef('die Zutaten hängen am Gericht', t.includes('3 Zutaten'), t.slice(0, 500));
+
+// „Brot" steht schon offen auf der Einkaufsliste — es darf NICHT mitkommen.
+pruef('nur die fehlenden werden angeboten', t.includes('2 Zutaten auf die Liste'), t.slice(0, 600));
+await tippe('2 Zutaten auf die Einkaufsliste');
+t = await text();
+pruef('danach fehlt nichts mehr', t.includes('Alles steht schon auf der Einkaufsliste'), t.slice(0, 600));
+
+await tab('Einkauf');
+t = await text();
+pruef('die Zutaten sind auf der Einkaufsliste', t.includes('Linsen') && t.includes('Spätzle'), t.slice(0, 500));
+pruef('und sagen, woher sie kommen', t.includes('von Linsen mit Spätzle'), t.slice(0, 500));
+// Am innerText lässt sich das NICHT ablesen: expo-router lässt alle Tabs
+// montiert, und „Brot" steht auch als Zutat im Essen-Tab. Gezählt werden
+// deshalb die Zeilen der EINKAUFSLISTE.
+const brotZeilen = await p.evaluate(() =>
+  [...document.querySelectorAll('[aria-label]')].filter((e) => e.getAttribute('aria-label') === 'Brot abhaken').length);
+pruef('„Brot" wurde NICHT verdoppelt', brotZeilen === 1, String(brotZeilen));
+
+console.log('\n3) Wohnung: anlegen, jemandem geben, warten lassen');
+await tab('Wohnung');
+await schreibe('Aufgabe hinzufügen', 'Regal anbringen');
+await schreibe('Aufgabe hinzufügen', 'Heizung entlüften');
+t = await text();
+pruef('beide sind offen', t.includes('2 offen'), t.slice(0, 300));
+
+await tippe('Heizung entlüften bearbeiten');
+const wartenFeld = await griff('Worauf Heizung entlüften wartet');
+await wartenFeld.click();
+await wartenFeld.fill('Termin');
+await p.keyboard.press('Enter');
+await p.waitForTimeout(700);
+t = await text();
+pruef('Wartendes zählt nicht mehr als offen', t.includes('1 offen · 1 wartet'), t.slice(0, 300));
+
+await tippe('Wartendes anzeigen');
+t = await text();
+pruef('es steht im Warte-Abschnitt', t.includes('wartet auf Termin'), t.slice(0, 500));
+
+await tippe('Regal anbringen erledigen');
+t = await text();
+pruef('Erledigtes verlässt das Offene', t.includes('0 offen'), t.slice(0, 300));
+await tippe('Erledigtes anzeigen');
+pruef('und liegt unter „Erledigt"', enthaelt(await text(), 'Erledigt · 1'), (await text()).slice(-400));
+
+console.log(`\nSeitenfehler: ${fehler.length === 0 ? 'keine' : fehler.join(' | ')}`);
+console.log(`${ok} ok, ${bad} fehlgeschlagen`);
+await b.close();
+process.exit(bad === 0 && fehler.length === 0 ? 0 : 1);
