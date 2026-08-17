@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "bring-home",
+    "slug": "bring-home",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "bringhome",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.julian.bringhome",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "app.julian.bringhome",
+      "versionCode": 1
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
