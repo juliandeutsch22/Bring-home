@@ -18,32 +18,32 @@ const app = JSON.parse(readFileSync('app.json', 'utf8'));
 const BASIS = (app.expo.experiments?.baseUrl ?? '').replace(/\/$/, '');
 const unter = (pfad) => `${BASIS}/${pfad.replace(/^\.?\//, '')}`;
 
-// ------------------------------------------------------------ Grundfarben
+// ------------------------------------------------------------- Grundfarbe
 //
-// Sie stehen an drei Stellen im Kopf der Seite (theme-color hell, theme-color
-// dunkel, und die Fläche hinter der App) und dürfen mit `skin.ts` nicht
-// auseinanderlaufen. Also werden sie DORT gelesen statt hier abgeschrieben.
+// Nur EINE, weil die App nur eine Fassung hat: bring-home ist fest hell,
+// unabhängig von der Systemeinstellung (siehe `ThemeProvider.tsx`). Ein
+// dunkler Wert im Seitenkopf wäre hier kein Vorrat, sondern eine Falle — er
+// träfe den Rahmen um die App, während die App selbst hell bliebe. Genau
+// dieser Widerspruch war der weiße Balken unter der Notch, nur andersherum.
 //
-// Wenn das Auslesen scheitert, bricht der Build ab. Ein stiller Rückfall auf
-// eine fest eingetragene Farbe wäre schlimmer als ein Fehlschlag: er sähe
-// monatelang richtig aus und wäre es nach dem nächsten Farbwechsel nicht mehr.
-function grundfarben() {
+// Der Wert steht in `skin.ts` und wird DORT gelesen statt hier abgeschrieben.
+// Scheitert das Auslesen, bricht der Build ab: ein stiller Rückfall auf eine
+// fest eingetragene Farbe sähe monatelang richtig aus und wäre es nach dem
+// nächsten Farbwechsel nicht mehr.
+function grundfarbe() {
   const quelle = readFileSync('src/theme/skin.ts', 'utf8');
   const gewaehlt = quelle.match(/export const SKIN: Skin = SKINS\.(\w+)/)?.[1];
   if (!gewaehlt) throw new Error('pwa-huelle: die gewählte Haut steht nicht in skin.ts.');
 
   const block = quelle.slice(quelle.indexOf(`  ${gewaehlt}: {`));
-  const lies = (bereich) => {
-    const ab = block.indexOf(`${bereich}: {`);
-    if (ab < 0) throw new Error(`pwa-huelle: „${bereich}" fehlt in der Haut „${gewaehlt}".`);
-    const treffer = block.slice(ab).match(/\bbg:\s*'(#[0-9A-Fa-f]{6})'/);
-    if (!treffer) throw new Error(`pwa-huelle: kein bg in „${bereich}" der Haut „${gewaehlt}".`);
-    return treffer[1];
-  };
-  return { hell: lies('hell'), dunkel: lies('dunkel') };
+  const ab = block.indexOf('hell: {');
+  if (ab < 0) throw new Error(`pwa-huelle: „hell" fehlt in der Haut „${gewaehlt}".`);
+  const treffer = block.slice(ab).match(/\bbg:\s*'(#[0-9A-Fa-f]{6})'/);
+  if (!treffer) throw new Error(`pwa-huelle: kein bg in „hell" der Haut „${gewaehlt}".`);
+  return treffer[1];
 }
 
-const FARBE = grundfarben();
+const GRUND = grundfarbe();
 
 // ------------------------------------------------------------- manifest.json
 
@@ -55,8 +55,8 @@ const manifest = {
   scope: unter('./'),
   display: 'standalone',
   orientation: 'portrait',
-  background_color: FARBE.hell,
-  theme_color: FARBE.hell,
+  background_color: GRUND,
+  theme_color: GRUND,
   icons: [
     { src: unter('icons/icon-192.png'), sizes: '192x192', type: 'image/png' },
     { src: unter('icons/icon-512.png'), sizes: '512x512', type: 'image/png' },
@@ -74,29 +74,36 @@ if (!html.includes('rel="manifest"')) {
   const KOPF = `    <link rel="manifest" href="${unter('manifest.json')}" />
     <link rel="apple-touch-icon" href="${unter('icons/icon-180.png')}" />
     <link rel="icon" href="${unter('favicon.ico')}" sizes="32x32" />
-    <meta name="theme-color" content="${FARBE.hell}" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="${FARBE.dunkel}" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="${GRUND}" />
+    <!--
+      „light" und nichts sonst. Ohne diese Angabe malt das System eigene Teile
+      der Seite dunkel, sobald das Gerät auf Dunkel steht: Auswahlfelder,
+      Bildlaufleisten, den Einfügecursor. Die App bliebe hell und trüge lauter
+      dunkle Fremdkörper.
+    -->
+    <meta name="color-scheme" content="light" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <!--
-      „black-translucent" und NICHT „default".
+      Zur Statusleiste, weil hier zwei Fehler dicht beieinander liegen.
 
-      „default" heißt bei iOS nicht „normal", sondern ein WEISSER Balken über
-      der Seite. Über der dunklen Fassung der App war das genau der weiße Rand
-      unterhalb der Notch, und die Seite begann erst darunter — die App wirkte
-      oben abgeschnitten.
+      „default" heißt bei iOS nicht „normal", sondern: die Statusleiste ist ein
+      eigener HELLER Balken, und die Seite beginnt erst darunter. Auf einem
+      iPhone 14 Pro war das über der DUNKLEN Fassung der App genau der weiße
+      Rand unterhalb der Notch — heller Balken, dann eine fast schwarze App.
 
-      „black-translucent" legt die Seite unter die Statusleiste. Damit malen wir
-      die Fläche selbst (siehe den Stil weiter unten), und
-      \`env(safe-area-inset-top)\` liefert endlich einen echten Wert — den holt
-      sich \`Screen\` über \`useSafeAreaInsets()\` und schiebt den Inhalt unter
-      Uhr und Batterie.
+      Die Antwort darauf ist nicht „black-translucent", sondern der Verzicht auf
+      die dunkle Fassung: bring-home ist fest hell (siehe ThemeProvider.tsx).
+      Über einem cremefarbenen Zettel fällt ein heller Balken nicht mehr auf,
+      und die Ziffern der Uhr bleiben dunkel und damit lesbar.
+      „black-translucent" gäbe uns zwar die Fläche in die Hand, zeichnete Uhr
+      und Batterie aber IMMER hell — Weiß auf Creme kann man nicht lesen.
 
-      Der Preis, ehrlich benannt: iOS zeichnet Uhr und Batterie dann IMMER hell.
-      In der dunklen Fassung ist das richtig, in der hellen steht Weiß auf
-      Creme. Die Einstellung wird beim Start einmal gelesen und kann dem Theme
-      nicht folgen — es gibt hier nur die Wahl, welche Fassung nachgibt.
+      Die Seite endet also an der Unterkante der Statusleiste, und
+      env(safe-area-inset-top) meldet null. Das ist hier richtig so: der Platz
+      unter der Uhr ist schon freigehalten, "Screen" legt nur noch seinen
+      eigenen Abstand darauf.
     -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="bring-home" />
     <meta name="description" content="Eine geteilte Einkaufsliste — plus Essenswünsche und Wohnungs-Aufgaben." />
     <style id="grundflaeche">
@@ -108,11 +115,12 @@ if (!html.includes('rel="manifest"')) {
 
         Sie steht bewusst im HTML und nicht im Theme: zu dem Zeitpunkt, an dem
         sie gebraucht wird, läuft noch kein JavaScript.
+
+        Ohne Dunkel-Abfrage — die App hat keine dunkle Fassung, und eine
+        Ausnahme hier hieße, dass der Rahmen umschlägt, während der Inhalt
+        hell bleibt.
       */
-      html, body, #root { background-color: ${FARBE.hell}; }
-      @media (prefers-color-scheme: dark) {
-        html, body, #root { background-color: ${FARBE.dunkel}; }
-      }
+      html, body, #root { background-color: ${GRUND}; }
       /* Kein Gummiband am Seitenrand — die Listen scrollen selbst. */
       body { overscroll-behavior: none; }
     </style>

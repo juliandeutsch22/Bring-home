@@ -53,20 +53,21 @@ const appleIcon = await p.evaluate(() => document.querySelector('link[rel="apple
 pruef('iOS findet sein Icon', appleIcon === `${BASIS}/icons/icon-180.png`, String(appleIcon));
 pruef('das Icon gibt es wirklich', (await p.request.get(`${BASE}/icons/icon-180.png`)).ok());
 
-// Die drei Angaben, an denen der Rand oben hängt. Sie waren einmal falsch, und
-// das sah man erst auf einem echten iPhone: ein weißer Balken unter der Notch,
-// die App darunter angeschnitten. Hier stehen sie, damit das nicht zurückkommt.
+// Die Angaben, an denen der obere Rand hängt. Sie waren einmal falsch, und das
+// sah man erst auf einem echten iPhone: ein weißer Balken unter der Notch, die
+// App darunter angeschnitten. Hier stehen sie, damit das nicht zurückkommt.
 const randKopf = await p.evaluate(() => ({
   viewport: document.querySelector('meta[name="viewport"]')?.getAttribute('content') ?? '',
-  statusleiste: document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.getAttribute('content') ?? '',
+  farbschema: document.querySelector('meta[name="color-scheme"]')?.getAttribute('content') ?? '',
+  themen: [...document.querySelectorAll('meta[name="theme-color"]')].map((m) => m.getAttribute('media') ?? 'ohne'),
   grund: getComputedStyle(document.body).backgroundColor,
 }));
 pruef('die Seite reicht bis unter die Notch', randKopf.viewport.includes('viewport-fit=cover'), randKopf.viewport);
-pruef(
-  'die Statusleiste ist durchscheinend, nicht weiß',
-  randKopf.statusleiste === 'black-translucent',
-  randKopf.statusleiste,
-);
+pruef('die Seite bekennt sich zu Hell', randKopf.farbschema === 'light', randKopf.farbschema);
+// Ein zweiter theme-color mit Dunkel-Abfrage wäre keine Vorsorge, sondern ein
+// Widerspruch: der Rahmen schlüge um, während die App hell bliebe.
+pruef('es gibt genau eine Themenfarbe, ohne Dunkel-Ausnahme',
+  randKopf.themen.length === 1 && randKopf.themen[0] === 'ohne', JSON.stringify(randKopf.themen));
 // Weiß und Durchsichtig sind beide falsch: dort, wo nichts gezeichnet ist,
 // käme sonst das Weiß des Browsers durch.
 pruef(

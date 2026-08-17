@@ -93,6 +93,19 @@ Alles Themenbezogene steht in `src/theme/skin.ts`. Eine Variante ausprobieren
 heißt: EINE Zeile umstellen (`leinen` · `emaille` · `holz`). Der Rest des
 Design-Systems ist thematisch neutral.
 
+**Die App ist fest HELL**, unabhängig von der Systemeinstellung. Ein
+Einkaufszettel ist ein heller Zettel; die dunkle Fassung war aus der
+Schwester-App mitgekommen und nie für diese hier entworfen. Die dunklen
+Farbwerte bleiben in `skin.ts` stehen — sie kosten nichts —, werden aber von
+`ThemeProvider.tsx` nicht mehr erreicht.
+
+Wer das je umdreht, muss an ZWEI Stellen ran: `ThemeProvider.tsx` und
+`scripts/pwa-huelle.mjs`, wo die Fläche hinter der App, die Themenfarbe und die
+iOS-Statusleiste stehen. Laufen die beiden auseinander, sitzt ein heller Zettel
+in einem dunklen Rahmen — und genau das war der weiße Balken unter der Notch,
+nur andersherum. `touren/hell.mjs` lädt die App mit hell UND dunkel gestelltem
+System und prüft, dass sie beide Male hell bleibt.
+
 ## Verifikation
 
 ```
@@ -104,6 +117,7 @@ node touren/pages-nachbau.mjs    # in einem zweiten Fenster
 BH_BASE=http://localhost:8903/Bring-home node touren/rundgang.mjs
 BH_BASE=http://localhost:8903/Bring-home node touren/bleibt.mjs
 BH_BASE=http://localhost:8903/Bring-home node touren/teilen.mjs
+BH_BASE=http://localhost:8903/Bring-home node touren/hell.mjs
 ```
 
 **Immer gegen `pages-nachbau.mjs` prüfen, nicht gegen `serve`.** Der Nachbau

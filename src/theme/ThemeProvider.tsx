@@ -1,12 +1,25 @@
-// ThemeProvider.tsx — stellt das aufgelöste Farbschema bereit.
+// ThemeProvider.tsx — stellt das Farbschema bereit.
 //
-// Health-Kontext: LIGHT-first. `system` löst zu Light auf, solange das OS nicht
-// explizit dark meldet — aber der bewusste Default bleibt Light (Trust).
-import React, { createContext, useContext, useMemo } from 'react';
-import { useColorScheme as useRNColorScheme } from 'react-native';
+// bring-home ist AUSSCHLIESSLICH hell, unabhängig davon, was das Betriebssystem
+// meldet. Das ist eine Gestaltungsentscheidung, keine fehlende Funktion: die
+// Haut dieser App ist Marmor und Kalkstein, und ein Einkaufszettel ist ein
+// heller Zettel. Die dunkle Fassung war aus der Schwester-App mitgekommen und
+// nie für diese hier entworfen.
+//
+// Die dunklen Farbwerte bleiben in `theme.tokens.ts` und `skin.ts` stehen — sie
+// kosten nichts und wären beim nächsten Sinneswandel sofort wieder da. Erreicht
+// werden sie von hier aus aber NICHT: `useScheme()` gibt immer `light` zurück,
+// und die vier Komponenten, die danach fragen (Backdrop, Glass, GlassButton,
+// Type mit seinem Meißel), nehmen deshalb immer den hellen Zweig.
+//
+// Wer das je umdreht, muss an ZWEI Stellen ran: hier und in
+// `scripts/pwa-huelle.mjs`, wo die Fläche hinter der App und die Farbe der
+// iOS-Statusleiste stehen. Laufen die beiden auseinander, sitzt ein heller
+// Zettel in einem dunklen Rahmen — und genau das war eben erst der Fehler.
+import React, { createContext, useContext } from 'react';
 import { useReducedMotion as useRNReducedMotion } from 'react-native-reanimated';
 
-import { Colors, darkColors, lightColors } from './theme.tokens';
+import { Colors, lightColors } from './theme.tokens';
 import { useSettings } from './settings.store';
 
 type Scheme = 'light' | 'dark';
@@ -18,23 +31,11 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+/** Eine Konstante, kein Zustand — es gibt nichts umzuschalten. */
+const HELL: ThemeContextValue = { scheme: 'light', colors: lightColors };
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const osScheme = useRNColorScheme();
-  const themePref = useSettings((s) => s.themePref);
-
-  const scheme: Scheme = useMemo(() => {
-    if (themePref === 'light') return 'light';
-    if (themePref === 'dark') return 'dark';
-    // 'system': Light-first im Health-Kontext — nur echtes OS-Dark schiebt nach dark.
-    return osScheme === 'dark' ? 'dark' : 'light';
-  }, [themePref, osScheme]);
-
-  const value = useMemo<ThemeContextValue>(
-    () => ({ scheme, colors: scheme === 'dark' ? darkColors : lightColors }),
-    [scheme],
-  );
-
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={HELL}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme(): ThemeContextValue {
@@ -53,8 +54,9 @@ export function useScheme(): Scheme {
 }
 
 /**
- * Reduced Motion = OS-Pref ODER In-App-Setting (Build-Spec / VIBE §8).
- * Gate Bewegung + Partikel dahinter; Opacity/Color-Transitions dürfen bleiben.
+ * „Bewegung reduzieren" bleibt eine echte Frage an das System — anders als das
+ * Farbschema ist das keine Gestaltung, sondern eine Bitte des Nutzers, und die
+ * wird beantwortet.
  */
 export function useReducedMotion(): boolean {
   const osReduced = useRNReducedMotion();
