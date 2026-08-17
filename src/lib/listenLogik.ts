@@ -40,15 +40,43 @@ export function findeArtikel(artikel: Artikel[], text: string): Artikel | undefi
 }
 
 /**
- * Welche Zutaten eines Gerichts fehlen noch auf der Einkaufsliste?
+ * Wo steht eine Zutat gerade?
  *
- * Was schon OFFEN auf der Liste steht, wird nicht doppelt übernommen. Was im
- * Wagen liegt, zählt bewusst NICHT als vorhanden: es ist gekauft, nicht
- * eingeplant — wer morgen dasselbe Gericht kocht, braucht es wieder.
+ *  · `habenWir`     — von Hand gesetzt. Der Vorratsschrank ist das Einzige,
+ *                     was die App nicht wissen kann.
+ *  · `aufDerListe`  — steht offen auf der Einkaufsliste.
+ *  · `imWagen`      — schon eingekauft.
+ *  · `fehlt`        — muss noch besorgt werden.
+ *
+ * Bewusst ABGELEITET statt gespeichert (bis auf `habenWir`): ein Feld
+ * „schon übernommen" würde lügen, sobald jemand den Artikel von der
+ * Einkaufsliste wieder entfernt.
+ */
+export type ZutatStatus = 'habenWir' | 'aufDerListe' | 'imWagen' | 'fehlt';
+
+export function zutatStatus(z: Zutat, artikel: Artikel[]): ZutatStatus {
+  if (z.habenWir) return 'habenWir';
+  const treffer = findeArtikel(artikel, z.text);
+  if (!treffer) return 'fehlt';
+  return istImWagen(treffer) ? 'imWagen' : 'aufDerListe';
+}
+
+/**
+ * Welche Zutaten eines Gerichts müssen noch besorgt werden?
+ *
+ * Alles außer `fehlt` bleibt draußen: was auf der Liste steht, kommt nicht
+ * doppelt darauf; was im Wagen liegt, ist gekauft; was ihr immer dahabt, war
+ * nie ein Fall für die Liste.
+ *
+ * Dass Gekauftes hier NICHT mitzählt, ist eine bewusste Änderung gegenüber der
+ * ersten Fassung. Damals war der Sammel-Knopf der einzige Weg, und ein Gericht,
+ * dessen Zutaten schon im Wagen lagen, wäre unerreichbar gewesen. Jetzt trägt
+ * jede Zutat ihren Status selbst und kann einzeln zurück auf die Liste —
+ * der Sammel-Knopf muss also nur noch das Fehlende einsammeln, sonst würde er
+ * nach jedem Einkauf wieder Arbeit anbieten, die keine ist.
  */
 export function fehlendeZutaten(zutaten: Zutat[], artikel: Artikel[]): Zutat[] {
-  const offen = artikel.filter((a) => !istImWagen(a));
-  return zutaten.filter((z) => !findeArtikel(offen, z.text));
+  return zutaten.filter((z) => zutatStatus(z, artikel) === 'fehlt');
 }
 
 /** Wartet die Aufgabe auf jemand anderen? */

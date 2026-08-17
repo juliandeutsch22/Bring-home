@@ -11,6 +11,7 @@ import {
   teileAufgaben,
   teileListe,
   wartet,
+  zutatStatus,
 } from './listenLogik';
 
 const artikel = (p: Partial<Artikel> & { id: string; text: string }): Artikel => ({
@@ -27,7 +28,7 @@ const artikel = (p: Partial<Artikel> & { id: string; text: string }): Artikel =>
 const zutat = (p: Partial<Zutat> & { id: string; text: string }): Zutat => ({
   wunschId: 'w1',
   menge: null,
-  uebernommenAm: null,
+  habenWir: false,
   sort: 0,
   updatedAt: '2026-08-17T10:00:00.000Z',
   deletedAt: null,
@@ -79,6 +80,29 @@ describe('normalisiere und findeArtikel', () => {
   });
 });
 
+describe('zutatStatus', () => {
+  const linsen = zutat({ id: 'z1', text: 'Linsen' });
+
+  it('sagt „fehlt", wenn die Zutat nirgends steht', () => {
+    expect(zutatStatus(linsen, [])).toBe('fehlt');
+  });
+
+  it('sagt „aufDerListe", wenn sie offen auf der Einkaufsliste steht', () => {
+    expect(zutatStatus(linsen, [artikel({ id: 'a1', text: 'linsen' })])).toBe('aufDerListe');
+  });
+
+  it('sagt „imWagen", wenn sie schon abgehakt ist', () => {
+    const gekauft = artikel({ id: 'a1', text: 'Linsen', erledigtAm: '2026-08-17T11:00:00.000Z' });
+    expect(zutatStatus(linsen, [gekauft])).toBe('imWagen');
+  });
+
+  it('sticht mit „habenWir" alles andere aus — der Vorratsschrank schlägt die Liste', () => {
+    const vorrat = zutat({ id: 'z2', text: 'Salz', habenWir: true });
+    expect(zutatStatus(vorrat, [])).toBe('habenWir');
+    expect(zutatStatus(vorrat, [artikel({ id: 'a1', text: 'Salz' })])).toBe('habenWir');
+  });
+});
+
 describe('fehlendeZutaten', () => {
   const zutaten = [
     zutat({ id: 'z1', text: 'Linsen' }),
@@ -91,9 +115,14 @@ describe('fehlendeZutaten', () => {
     expect(fehlendeZutaten(zutaten, liste).map((z) => z.id)).toEqual(['z2', 'z3']);
   });
 
-  it('zählt Gekauftes NICHT als vorhanden — wer morgen dasselbe kocht, braucht es wieder', () => {
+  it('lässt auch Gekauftes weg — der Sammel-Knopf sammelt nur, was fehlt', () => {
     const liste = [artikel({ id: 'a1', text: 'Linsen', erledigtAm: '2026-08-17T11:00:00.000Z' })];
-    expect(fehlendeZutaten(zutaten, liste).map((z) => z.id)).toEqual(['z1', 'z2', 'z3']);
+    expect(fehlendeZutaten(zutaten, liste).map((z) => z.id)).toEqual(['z2', 'z3']);
+  });
+
+  it('lässt weg, was ihr ohnehin immer dahabt', () => {
+    const mitVorrat = [...zutaten, zutat({ id: 'z4', text: 'Salz', habenWir: true })];
+    expect(fehlendeZutaten(mitVorrat, []).map((z) => z.id)).toEqual(['z1', 'z2', 'z3']);
   });
 
   it('gibt nichts zurück, wenn alles schon dasteht', () => {

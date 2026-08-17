@@ -70,7 +70,7 @@ function baueZutaten(): Ablage<Zutat, NeueZutat> {
       wunschId: e.wunschId,
       text: e.text.trim(),
       menge: e.menge?.trim() || null,
-      uebernommenAm: null,
+      habenWir: false,
       sort,
     }),
     nachSort,

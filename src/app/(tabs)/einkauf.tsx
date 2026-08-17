@@ -4,16 +4,22 @@
 // fehlt, darunter der Wagen — eingeklappt, weil er beim Einkaufen niemanden
 // interessiert.
 //
-// Zwei Entscheidungen, die man sehen können sollte:
+// Drei Entscheidungen, die man sehen können sollte:
 //  · Abhaken LÖSCHT nicht. Was im Wagen liegt, bleibt sichtbar, bis jemand den
 //    Wagen leert — ein Fehlgriff ist damit ein Tipp, keine Rekonstruktion.
 //  · Ein Artikel, den es schon gibt, wird nicht verdoppelt. Wer „Milch" ein
 //    zweites Mal tippt, meint dieselbe Milch.
-import { Plus, ShoppingBasket, Trash2 } from 'lucide-react-native';
+//  · Rechts steht ein STIFT, kein Mülleimer. Die ganze Zeile hakt ab — das ist
+//    im Supermarkt die einzige Handlung, die schnell gehen muss —, und alles
+//    Übrige (umbenennen, Menge, löschen) liegt eine Ebene tiefer. Vorher war
+//    das Löschen ein einzelner Tipp direkt neben dem Abhaken; ein Danebengreifen
+//    war damit unwiderruflich.
+import { Pencil, Plus, ShoppingBasket } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { DisclosureChevron } from '@/components/DisclosureChevron';
+import { Feld } from '@/components/Feld';
 import { Haken } from '@/components/Haken';
 import { Listenzeile, Rutscht } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
@@ -25,6 +31,7 @@ import { EmptyState } from '@/components/StateView';
 import { Type } from '@/components/Type';
 import {
   useArtikel,
+  useArtikelAendern,
   useArtikelAnlegen,
   useArtikelLoeschen,
   useArtikelUmschalten,
@@ -41,11 +48,14 @@ export default function EinkaufScreen() {
   const { data: artikel } = useArtikel();
   const anlegen = useArtikelAnlegen();
   const umschalten = useArtikelUmschalten();
+  const aendern = useArtikelAendern();
   const loeschen = useArtikelLoeschen();
   const wagenLeeren = useWagenLeeren();
 
   const [entwurf, setEntwurf] = useState('');
   const [zeigeWagen, setZeigeWagen] = useState(false);
+  /** Welcher Artikel gerade seinen Editor offen hat. Immer höchstens einer. */
+  const [bearbeitet, setBearbeitet] = useState<string | null>(null);
 
   const { offen, imWagen } = useMemo(() => teileListe(artikel ?? []), [artikel]);
   const [gezeigterWagen, restWagen] = useMemo(() => kuerze(imWagen), [imWagen]);
@@ -125,7 +135,9 @@ export default function EinkaufScreen() {
           </GlassPanel>
         ) : (
           <GlassPanel>
-            {offen.map((a, i) => (
+            {offen.map((a, i) => {
+              const auf = bearbeitet === a.id;
+              return (
               <Listenzeile key={a.id}>
                 {i > 0 && <Seam marginVertical={2} />}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
@@ -147,18 +159,57 @@ export default function EinkaufScreen() {
                     {a.menge && <Type variant="label" tone="text3" tabular>{a.menge}</Type>}
                   </PressableScale>
                   <PressableScale
-                    accessibilityLabel={`${a.text} entfernen`}
+                    accessibilityLabel={auf ? `${a.text} fertig bearbeiten` : `${a.text} bearbeiten`}
                     onPress={() => {
                       hapticSelect();
-                      loeschen.mutate(a.id);
+                      setBearbeitet(auf ? null : a.id);
                     }}
                     style={{ padding: Spacing.xs }}
                   >
-                    <Trash2 size={16} color={colors.text3} strokeWidth={2} />
+                    <Pencil size={16} color={auf ? colors.accentA : colors.text3} strokeWidth={2} />
                   </PressableScale>
                 </View>
+
+                {auf && (
+                  <Rutscht>
+                    <View style={{ gap: Spacing.sm, paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
+                      <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                        {/* Der Name darf nicht leer werden — ein namenloser
+                            Punkt wäre auf der Liste nicht wiederzufinden. */}
+                        <Feld
+                          label={`${a.text} umbenennen`}
+                          platzhalter="Was?"
+                          wert={a.text}
+                          stil={{ flex: 1 }}
+                          onSichern={(v) => v && aendern.mutate({ id: a.id, patch: { text: v } })}
+                        />
+                        <Feld
+                          label={`Menge von ${a.text}`}
+                          platzhalter="Menge"
+                          wert={a.menge}
+                          stil={{ width: 96 }}
+                          onSichern={(v) => aendern.mutate({ id: a.id, patch: { menge: v } })}
+                        />
+                      </View>
+                      {/* Ein Tipp, keine Rückfrage: hierher kommt man nur über
+                          den Stift, das Löschen ist also schon der zweite Tipp. */}
+                      <PressableScale
+                        accessibilityLabel={`${a.text} entfernen`}
+                        onPress={() => {
+                          hapticSelect();
+                          setBearbeitet(null);
+                          loeschen.mutate(a.id);
+                        }}
+                        style={{ alignSelf: 'flex-start', paddingVertical: Spacing.xs }}
+                      >
+                        <Type variant="label" tone="accentB">Von der Liste nehmen</Type>
+                      </PressableScale>
+                    </View>
+                  </Rutscht>
+                )}
               </Listenzeile>
-            ))}
+              );
+            })}
           </GlassPanel>
         )}
       </Reveal>

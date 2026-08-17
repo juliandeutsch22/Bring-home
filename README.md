@@ -14,7 +14,10 @@ sich auf den Home-Bildschirm legen und startet ohne Netz. Noch NICHT: Teilen
 Zwei Dinge kann nur der Besitzer des Supabase-Projekts tun:
 
 1. **`supabase/schema.sql`** einmal im SQL-Editor ausführen (Tabellen,
-   Zugriffsregeln, Beitritts-Funktionen).
+   Zugriffsregeln, Beitritts-Funktionen). Ist das schon geschehen, kommt
+   **`supabase/migration-01-zutaten.sql`** hinterher: `schema.sql` legt die
+   Tabellen mit `create table if not exists` an und sieht deshalb gar nicht
+   mehr hin, ob die Spalten noch stimmen.
 2. **Anonyme Anmeldung einschalten:** Authentication → Sign In / Providers →
    *Anonymous sign-ins* → an. Ohne das gibt es kein `auth.uid()`, und jede
    Zugriffsregel sperrt.

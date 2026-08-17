@@ -6,6 +6,8 @@
 // darüber sind, was auf der Liste steht.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { findeArtikel } from '@/lib/listenLogik';
+
 import { holeArtikel, holeAufgaben, holeWuensche, holeZutaten } from './index';
 import type {
   Artikel,
@@ -50,6 +52,16 @@ export function useArtikelUmschalten() {
   return useMutation({
     mutationFn: ({ id, imWagen }: { id: string; imWagen: boolean }) =>
       holeArtikel().aendern(id, { erledigtAm: imWagen ? null : new Date().toISOString() }),
+    onSuccess: frisch,
+  });
+}
+
+/** Text und Menge nachbessern — „Milch" wird zu „Hafermilch, 2". */
+export function useArtikelAendern() {
+  const frisch = useFrischArtikel();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<Omit<Artikel, 'id'>> }) =>
+      holeArtikel().aendern(id, patch),
     onSuccess: frisch,
   });
 }
@@ -120,6 +132,16 @@ export function useZutatAnlegen() {
   });
 }
 
+/** Text, Menge, „Haben wir" — alles, was am Editier-Stift hängt. */
+export function useZutatAendern() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<Omit<Zutat, 'id'>> }) =>
+      holeZutaten().aendern(id, patch),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.zutaten }),
+  });
+}
+
 export function useZutatLoeschen() {
   const qc = useQueryClient();
   return useMutation({
@@ -129,23 +151,29 @@ export function useZutatLoeschen() {
 }
 
 /**
- * Zutaten auf die Einkaufsliste. Was schon offen dort steht, wird übersprungen
- * — der Aufrufer entscheidet vorher mit `fehlendeZutaten`, was übrig bleibt.
+ * Zutaten auf die Einkaufsliste — eine einzelne oder alle fehlenden auf einmal.
+ *
+ * Hier wird an der Zutat NICHTS vermerkt. Wo sie steht, leitet
+ * `zutatStatus` jedes Mal frisch aus der Einkaufsliste ab; ein gespeichertes
+ * „schon übernommen" würde lügen, sobald jemand den Artikel wieder von der
+ * Liste nimmt.
+ *
+ * Ein Artikel, den es schon gibt, wird nicht verdoppelt — dieselbe Regel wie
+ * beim Tippen im Einkauf. Liegt er im Wagen, kommt er wieder heraus.
  */
 export function useZutatenUebernehmen() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ zutaten, gericht }: { zutaten: Zutat[]; gericht: string }) => {
+      const vorhanden = await holeArtikel().alle();
       for (const z of zutaten) {
-        await holeArtikel().anlegen({ text: z.text, menge: z.menge, vonWem: gericht });
-        await holeZutaten().aendern(z.id, { uebernommenAm: new Date().toISOString() });
+        const treffer = findeArtikel(vorhanden, z.text);
+        if (treffer) await holeArtikel().aendern(treffer.id, { erledigtAm: null });
+        else await holeArtikel().anlegen({ text: z.text, menge: z.menge, vonWem: gericht });
       }
       return zutaten.length;
     },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: keys.artikel });
-      void qc.invalidateQueries({ queryKey: keys.zutaten });
-    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.artikel }),
   });
 }
 

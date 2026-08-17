@@ -76,6 +76,9 @@ pruef('die Zählung stimmt weiterhin', t.includes('1 Sache fehlt'), t.slice(0, 3
 pruef('und der Wagen auch', t.toLowerCase().includes('im wagen · 1'), t.slice(0, 400));
 
 console.log('\n4) Auch Gelöschtes bleibt gelöscht');
+// Löschen liegt seit dem Stift eine Ebene tiefer — neben dem Abhaken soll im
+// Supermarkt kein Mülleimer stehen.
+await tippe('Olivenöl bearbeiten');
 await tippe('Olivenöl entfernen');
 await p.reload({ waitUntil: 'networkidle' });
 await p.waitForTimeout(1800);

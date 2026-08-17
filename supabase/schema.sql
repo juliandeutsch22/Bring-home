@@ -66,7 +66,10 @@ create table if not exists zutaten (
   wunsch_id uuid not null,
   text text not null,
   menge text,
-  uebernommen_am timestamptz,
+  -- „Haben wir da." Das Einzige an einer Zutat, was die App nicht ableiten
+  -- kann; wo sie sonst steht (auf der Liste, im Wagen, fehlt), ergibt sich
+  -- jedes Mal frisch aus `artikel`.
+  haben_wir boolean not null default false,
   sort double precision not null default 0,
   updated_at timestamptz not null,
   deleted_at timestamptz

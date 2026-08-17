@@ -56,6 +56,13 @@ const schreibe = async (label, wert) => {
   await e.press('Enter');
   await p.waitForTimeout(600);
 };
+/**
+ * Wie oft gibt es dieses Label? Am `innerText` lässt sich das NICHT ablesen:
+ * expo-router hält alle Tabs montiert, „Brot" steht also auch als Zutat im
+ * Essen-Tab. Gezählt werden deshalb die Bedienelemente.
+ */
+const zeilen = (label) =>
+  p.evaluate((l) => [...document.querySelectorAll('[aria-label]')].filter((e) => e.getAttribute('aria-label') === l).length, label);
 const tab = async (name) => {
   const box = await p.evaluate((n) => {
     const k = [...document.querySelectorAll('[role="tab"]')].filter((e) => (e.getAttribute('aria-label') ?? '').includes(n));
@@ -109,18 +116,14 @@ pruef('die Zutaten hängen am Gericht', t.includes('3 Zutaten'), t.slice(0, 500)
 pruef('nur die fehlenden werden angeboten', t.includes('2 Zutaten auf die Liste'), t.slice(0, 600));
 await tippe('2 Zutaten auf die Einkaufsliste');
 t = await text();
-pruef('danach fehlt nichts mehr', t.includes('Alles steht schon auf der Einkaufsliste'), t.slice(0, 600));
+pruef('danach fehlt nichts mehr', t.includes('Alles beisammen'), t.slice(0, 600));
+pruef('jede Zutat sagt jetzt, wo sie steht', t.includes('auf der Liste'), t.slice(0, 800));
 
 await tab('Einkauf');
 t = await text();
 pruef('die Zutaten sind auf der Einkaufsliste', t.includes('Linsen') && t.includes('Spätzle'), t.slice(0, 500));
 pruef('und sagen, woher sie kommen', t.includes('von Linsen mit Spätzle'), t.slice(0, 500));
-// Am innerText lässt sich das NICHT ablesen: expo-router lässt alle Tabs
-// montiert, und „Brot" steht auch als Zutat im Essen-Tab. Gezählt werden
-// deshalb die Zeilen der EINKAUFSLISTE.
-const brotZeilen = await p.evaluate(() =>
-  [...document.querySelectorAll('[aria-label]')].filter((e) => e.getAttribute('aria-label') === 'Brot abhaken').length);
-pruef('„Brot" wurde NICHT verdoppelt', brotZeilen === 1, String(brotZeilen));
+pruef('„Brot" wurde NICHT verdoppelt', (await zeilen('Brot abhaken')) === 1);
 
 console.log('\n3) Wohnung: anlegen, jemandem geben, warten lassen');
 await tab('Wohnung');
@@ -147,6 +150,52 @@ t = await text();
 pruef('Erledigtes verlässt das Offene', t.includes('0 offen'), t.slice(0, 300));
 await tippe('Erledigtes anzeigen');
 pruef('und liegt unter „Erledigt"', enthaelt(await text(), 'Erledigt · 1'), (await text()).slice(-400));
+
+console.log('\n4) Einkauf: einen Punkt nachbessern statt neu tippen');
+await tab('Einkauf');
+await tippe('Brot bearbeiten');
+const mengenfeld = await griff('Menge von Brot');
+await mengenfeld.click();
+await mengenfeld.fill('2 Laibe');
+await p.keyboard.press('Enter');
+await p.waitForTimeout(700);
+pruef('die Menge steht an der Zeile', (await text()).includes('2 Laibe'), (await text()).slice(0, 500));
+
+const namensfeld = await griff('Brot umbenennen');
+await namensfeld.click();
+await namensfeld.fill('Vollkornbrot');
+await p.keyboard.press('Enter');
+await p.waitForTimeout(700);
+pruef('der Punkt heißt jetzt anders', (await zeilen('Vollkornbrot abhaken')) === 1);
+pruef('und nicht mehr wie vorher', (await zeilen('Brot abhaken')) === 0);
+await tippe('Vollkornbrot fertig bearbeiten');
+
+console.log('\n5) Essen: der Status hängt an der Einkaufsliste, nicht an einem Häkchen');
+await tab('Essen');
+t = await text();
+// „Brot" heißt auf der Einkaufsliste nun anders — die Zutat findet dort nichts
+// mehr und fällt von selbst auf „fehlt" zurück. Genau das könnte ein
+// gespeichertes „schon übernommen" nicht.
+pruef('die umbenannte Zutat fehlt wieder', t.includes('1 Zutat auf die Liste'), t.slice(0, 800));
+
+await tippe('Brot auf die Einkaufsliste');
+t = await text();
+pruef('einzeln übernehmen genügt', t.includes('Alles beisammen'), t.slice(0, 800));
+
+await tippe('Zutat Spätzle bearbeiten');
+await tippe('Spätzle haben wir da');
+t = await text();
+pruef('„Haben wir" steht an der Zutat', t.includes('haben wir da'), t.slice(0, 900));
+await tippe('Zutat Spätzle entfernen');
+t = await text();
+pruef('eine gestrichene Zutat ist weg', t.includes('2 Zutaten'), t.slice(0, 800));
+
+console.log('\n6) Einkauf: löschen liegt hinter dem Stift');
+await tab('Einkauf');
+pruef('das einzeln übernommene Brot steht auf der Liste', (await zeilen('Brot abhaken')) === 1);
+await tippe('Vollkornbrot bearbeiten');
+await tippe('Vollkornbrot entfernen');
+pruef('und nach dem Löschen ist die Zeile fort', (await zeilen('Vollkornbrot abhaken')) === 0);
 
 console.log(`\nSeitenfehler: ${fehler.length === 0 ? 'keine' : fehler.join(' | ')}`);
 console.log(`${ok} ok, ${bad} fehlgeschlagen`);

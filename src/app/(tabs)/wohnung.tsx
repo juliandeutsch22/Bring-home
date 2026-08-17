@@ -15,6 +15,7 @@ import React, { useMemo, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { DisclosureChevron } from '@/components/DisclosureChevron';
+import { Feld } from '@/components/Feld';
 import { Haken } from '@/components/Haken';
 import { Listenzeile, Rutscht } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
@@ -276,60 +277,5 @@ export default function WohnungScreen() {
         </Reveal>
       )}
     </Screen>
-  );
-}
-
-/**
- * Ein Textfeld, das seinen Wert beim Abschicken UND beim Verlassen sichert.
- *
- * Warum beides: `onEndEditing` allein reicht nicht — auf iOS feuert es, im Web
- * nicht zuverlässig. Da die App zuerst im Browser lebt, wäre das Feld dort
- * still wirkungslos gewesen: man tippt „Termin", nichts passiert, und die
- * Aufgabe wartet nie. Deshalb `onSubmitEditing` (Enter) plus `onBlur`
- * (woanders hingetippt).
- */
-function Feld({
-  label,
-  platzhalter,
-  wert,
-  onSichern,
-}: {
-  label: string;
-  platzhalter: string;
-  wert: string | null;
-  onSichern: (v: string | null) => void;
-}) {
-  const colors = useColors();
-  const [entwurf, setEntwurf] = useState(wert ?? '');
-  const sichern = () => {
-    const sauber = entwurf.trim();
-    if (sauber === (wert ?? '')) return;
-    onSichern(sauber || null);
-  };
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.sm,
-        borderRadius: R.lg,
-        borderWidth: 1,
-        borderColor: colors.chipBorder,
-        backgroundColor: colors.sunk,
-        paddingHorizontal: Spacing.md,
-      }}
-    >
-      <TextInput
-        accessibilityLabel={label}
-        value={entwurf}
-        onChangeText={setEntwurf}
-        onSubmitEditing={sichern}
-        onBlur={sichern}
-        placeholder={platzhalter}
-        placeholderTextColor={colors.text3}
-        returnKeyType="done"
-        style={[{ flex: 1, fontSize: T.md, color: colors.text, paddingVertical: Spacing.sm, minHeight: 22 }, webNoOutline]}
-      />
-    </View>
   );
 }

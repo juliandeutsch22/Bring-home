@@ -43,8 +43,15 @@ export type Zutat = Sync & {
   wunschId: string;
   text: string;
   menge: string | null;
-  /** Schon auf der Einkaufsliste? Verhindert doppeltes Übernehmen. */
-  uebernommenAm: string | null; // ISO
+  /**
+   * „Haben wir da." Von Hand gesetzt — Salz, Öl, Mehl stehen in jedem zweiten
+   * Rezept und sollen nicht jedes Mal auf der Einkaufsliste landen.
+   *
+   * Das ist die EINZIGE Zutaten-Eigenschaft, die die App nicht ableiten kann:
+   * ob etwas schon auf der Liste steht oder im Wagen liegt, weiß sie; was im
+   * Vorratsschrank steht, weiß nur ihr.
+   */
+  habenWir: boolean;
   sort: number;
 };
 
