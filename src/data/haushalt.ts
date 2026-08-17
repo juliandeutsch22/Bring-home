@@ -72,26 +72,43 @@ export const useHaushalt = create<Laden>((setze) => ({
   stand: 'lokal',
   meldung: null,
 
+  /**
+   * Beim Start: welchen Haushalt hat sich dieses Gerät gemerkt?
+   *
+   * Der Code wird EINMAL eingetippt und liegt danach hier — zusammen mit der
+   * anonymen Sitzung im selben Speicher. Beim nächsten Start ist beides wieder
+   * da; niemand tippt seinen Code zweimal.
+   */
   async laden() {
     const roh = await AsyncStorage.getItem(SCHLUESSEL);
     if (!roh) return;
+
+    let gemerkt: Gemerkt;
     try {
-      const g = JSON.parse(roh) as Gemerkt;
-      setze({ id: g.id, code: g.code, stand: 'laedt' });
-      // Die Anmeldung ist anonym und liegt im selben Speicher. Fällt sie aus
-      // (kein Netz, Anbieter aus), bleibt der Haushalt gemerkt — die App
-      // arbeitet lokal weiter und versucht es beim nächsten Start erneut.
-      const wer = await mitFrist(angemeldet()).catch(() => null);
-      setze({ stand: wer ? 'verbunden' : 'lokal' });
+      gemerkt = JSON.parse(roh) as Gemerkt;
     } catch {
+      // Unlesbar gespeichert — das ist das Einzige, was den Haushalt wirklich
+      // vergessen lässt.
       await merken(null);
+      return;
+    }
+    setze({ id: gemerkt.id, code: gemerkt.code, stand: 'laedt' });
+
+    try {
+      await mitFrist(angemeldet());
+      setze({ stand: 'verbunden', meldung: null });
+    } catch (e) {
+      // Der Haushalt bleibt GEMERKT. Kein Netz oder ein fehlender Schalter im
+      // Dashboard sind vorübergehend; den Code deshalb wegzuwerfen hieße, ihn
+      // beim nächsten Mal wieder abtippen zu lassen.
+      setze({ stand: 'lokal', meldung: lesbar(e) });
     }
   },
 
   async gruenden() {
     setze({ stand: 'laedt', meldung: null });
     try {
-      if (!(await mitFrist(angemeldet()))) throw new Error('Keine Verbindung zum Server.');
+      await mitFrist(angemeldet());
       // Bei null anfangen, damit der Bestand, der schon auf diesem Gerät liegt,
       // beim ersten Durchgang vollständig hochgeht.
       await standVergessen();
@@ -114,7 +131,7 @@ export const useHaushalt = create<Laden>((setze) => ({
     if (!code) return;
     setze({ stand: 'laedt', meldung: null });
     try {
-      if (!(await mitFrist(angemeldet()))) throw new Error('Keine Verbindung zum Server.');
+      await mitFrist(angemeldet());
       // Beitreten VEREINIGT: was auf diesem Gerät liegt, kommt mit, und was
       // dort liegt, kommt herüber. Nichts wird dabei weggeworfen — ein Beitritt,
       // der die eigene Liste löscht, wäre eine böse Überraschung.
@@ -147,11 +164,30 @@ export const useHaushalt = create<Laden>((setze) => ({
   },
 }));
 
-function lesbar(e: unknown): string {
+/**
+ * Aus einem Fehler einen Satz machen, mit dem jemand etwas anfangen kann.
+ *
+ * Die Regel dahinter: die Meldung muss sagen, WAS zu tun ist. „Keine Verbindung
+ * zum Server" stand hier vorher für jeden Fehlschlag — auch für den, bei dem
+ * die Verbindung tadellos war und nur ein Schalter im Dashboard fehlte. Eine
+ * Meldung, die in die falsche Richtung zeigt, kostet mehr Zeit als gar keine.
+ *
+ * Deshalb wird auch der Rohtext durchgereicht, wenn nichts passt: eine fremde
+ * englische Fehlermeldung ist unschön, aber sie lässt sich nachschlagen.
+ */
+export function lesbar(e: unknown): string {
   const roh = e instanceof Error ? e.message : String(e);
+  const code = typeof e === 'object' && e !== null && 'code' in e ? String((e as { code: unknown }).code) : '';
+
+  if (/anonymous_provider_disabled/i.test(code) || /anonymous sign-ins are disabled/i.test(roh)) {
+    return 'Der Server lässt anonyme Anmeldungen nicht zu. In Supabase: Authentication → Sign In / Providers → „Anonymous sign-ins" einschalten und speichern.';
+  }
   if (/unbekannter Code/i.test(roh)) return 'Diesen Code gibt es nicht. Vertippt?';
-  if (/nicht angemeldet/i.test(roh)) return 'Die anonyme Anmeldung ist im Projekt noch nicht eingeschaltet.';
+  if (/nicht angemeldet/i.test(roh)) return 'Die Anmeldung am Server hat nicht geklappt.';
   if (/antwortet nicht/i.test(roh)) return 'Der Server antwortet nicht. Die Liste bleibt so lange auf diesem Gerät.';
+  if (/does not exist|schema cache|PGRST/i.test(roh + code)) {
+    return 'Die Datenbank ist noch nicht auf dem Stand der App. Die beiden Dateien in `supabase/` im SQL-Editor ausführen.';
+  }
   if (/fetch|network|Failed to fetch/i.test(roh)) return 'Kein Netz. Die Liste bleibt so lange auf diesem Gerät.';
   return roh;
 }

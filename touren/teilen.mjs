@@ -22,8 +22,15 @@ const pruef = (name, wahr, extra = '') => {
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const p = await b.newPage({ viewport: { width: 430, height: 932 } });
 const fehler = [];
-p.on('pageerror', (e) => fehler.push(String(e)));
-p.on('console', (m) => { if (m.type() === 'error') fehler.push(m.text()); });
+/**
+ * Ein fehlgeschlagener Netzabruf ist hier KEIN Fehler, sondern der Prüffall:
+ * diese Tour läuft ohne erreichbaren Server, und dass der Browser das meldet,
+ * ist der Beweis, dass die App es überhaupt versucht hat. Was zählt, ist, was
+ * die App daraus macht — und das steht weiter unten.
+ */
+const netz = (t) => /ERR_|Failed to load resource|Failed to fetch|NetworkError|supabase/i.test(t);
+p.on('pageerror', (e) => { if (!netz(String(e))) fehler.push(String(e)); });
+p.on('console', (m) => { if (m.type() === 'error' && !netz(m.text())) fehler.push(m.text()); });
 
 await p.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 await p.waitForTimeout(1600);

@@ -71,10 +71,28 @@ export default function HaushaltScreen() {
           <Link2 size={26} color={colors.accentA} strokeWidth={2.2} />
           <Type variant="title" style={{ flex: 1 }}>Teilen</Type>
         </View>
+        {/* Drei Zustände, drei Sätze. „Gemerkt, aber nicht verbunden" hatte
+            vorher keinen eigenen — und las sich damit wie „läuft", obwohl
+            nichts hochging. */}
         <Type variant="caption" tone="text3" style={{ marginTop: 2 }}>
-          {id ? 'Diese Liste liegt auf beiden Geräten.' : 'Diese Liste liegt nur auf diesem Gerät.'}
+          {!id
+            ? 'Diese Liste liegt nur auf diesem Gerät.'
+            : stand === 'verbunden'
+              ? 'Diese Liste liegt auf beiden Geräten.'
+              : 'Geteilt, aber gerade nicht verbunden. Es wird nachgeholt, sobald es geht.'}
         </Type>
       </Reveal>
+
+      {/* Was schiefging, steht ganz oben und nicht unten am Code-Feld: es
+          betrifft den ganzen Bildschirm, nicht nur den Beitritt. */}
+      {meldung && stand !== 'laedt' && (
+        <Reveal delay={30}>
+          <GlassPanel>
+            <Type variant="eyebrow" tone="text3">Das steht im Weg</Type>
+            <Type variant="body" tone="text2" style={{ marginTop: Spacing.xs }}>{meldung}</Type>
+          </GlassPanel>
+        </Reveal>
+      )}
 
       {id && code ? (
         <Reveal delay={60}>
@@ -174,9 +192,6 @@ export default function HaushaltScreen() {
               <Type variant="label" tone="accentA">Beitreten</Type>
             </PressableScale>
           </View>
-          {meldung && (
-            <Type variant="caption" tone="accentB" style={{ marginTop: Spacing.sm }}>{meldung}</Type>
-          )}
         </GlassPanel>
       </Reveal>
 

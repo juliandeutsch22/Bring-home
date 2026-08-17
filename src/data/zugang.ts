@@ -50,15 +50,19 @@ export function hole(): SupabaseClient {
  * Passwort; die Anmeldung dient nur dazu, dass RLS ein `auth.uid()` hat, an dem
  * die Mitgliedschaft hängen kann.
  *
- * Muss im Dashboard eingeschaltet sein (Authentication → Sign In / Providers →
- * Anonymous sign-ins). Ist sie es nicht, scheitert das hier — und der Aufrufer
- * bleibt einfach im lokalen Betrieb, statt die App anzuhalten.
+ * WIRFT im Fehlerfall, statt `null` zurückzugeben. Das ist der Unterschied
+ * zwischen „irgendwas ging nicht" und einer Antwort, mit der man etwas anfangen
+ * kann: der Server sagt sehr genau, was fehlt (`anonymous_provider_disabled`,
+ * wenn der Schalter im Dashboard aus ist), und diese Auskunft wegzuwerfen hieße,
+ * den Nutzer stattdessen raten zu lassen.
  */
-export async function angemeldet(): Promise<string | null> {
+export async function angemeldet(): Promise<string> {
   const k = hole();
   const { data } = await k.auth.getSession();
   if (data.session?.user) return data.session.user.id;
   const { data: neu, error } = await k.auth.signInAnonymously();
-  if (error) return null;
-  return neu.user?.id ?? null;
+  if (error) throw error;
+  const id = neu.user?.id;
+  if (!id) throw new Error('Die Anmeldung ergab keinen Nutzer.');
+  return id;
 }
