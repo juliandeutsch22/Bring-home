@@ -6,11 +6,16 @@ import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { serviceWorkerAnmelden } from '@/lib/serviceWorker';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
 });
+
+// Einmal beim Start, außerhalb der Komponente: die Anmeldung gehört nicht in
+// einen Render-Durchlauf, und zweimal anmelden wäre folgenlos, aber unsauber.
+serviceWorkerAnmelden();
 
 export default function RootLayout() {
   // Die Display-Schrift trägt jede Überschrift. Bis sie da ist, wird nichts

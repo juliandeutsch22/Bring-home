@@ -1,0 +1,51 @@
+# pages.yml — baut den Web-Build und stellt ihn auf GitHub Pages.
+#
+# Damit ist die App für beide erreichbar, ohne Signatur und ohne 7-Tage-Frist:
+# Adresse aufrufen, „Zum Home-Bildschirm", fertig.
+name: Web veröffentlichen
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Nur ein Lauf gleichzeitig; ein laufender wird nicht abgebrochen, damit eine
+# halb hochgeladene Fassung nicht online stehen bleibt.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  bauen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx jest --ci
+      - run: npm run build:web
+      # Ohne diese Datei wirft GitHub Pages alles weg, was mit _ beginnt —
+      # und Expo legt sein Bundle in `_expo/` ab. Die App wäre eine leere Seite.
+      - run: touch dist/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  veroeffentlichen:
+    needs: bauen
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - id: pages
+        uses: actions/deploy-pages@v4

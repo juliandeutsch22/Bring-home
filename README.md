@@ -5,10 +5,21 @@ sieht der andere.
 
 ## Stand
 
-**Etappe 1 — die drei Listen sind benutzbar.** Datenschicht, Einkauf, Essen
-mit Zutaten-Übernahme, Wohnungs-Aufgaben mit Person und „Warten auf".
-Noch NICHT: Speichern über einen Neustart hinweg (Etappe 2) und Teilen
-(Etappe 3) — die Daten liegen im Speicher.
+**Etappe 2 — die App bleibt.** Der Bestand überlebt das Schließen, sie lässt
+sich auf den Home-Bildschirm legen und startet ohne Netz. Noch NICHT: Teilen
+(Etappe 3).
+
+### Was noch offen ist, bevor Etappe 3 gebaut werden kann
+
+Zwei Dinge kann nur der Besitzer des Supabase-Projekts tun:
+
+1. **`supabase/schema.sql`** einmal im SQL-Editor ausführen (Tabellen,
+   Zugriffsregeln, Beitritts-Funktionen).
+2. **Anonyme Anmeldung einschalten:** Authentication → Sign In / Providers →
+   *Anonymous sign-ins* → an. Ohne das gibt es kein `auth.uid()`, und jede
+   Zugriffsregel sperrt.
+
+Und für die Veröffentlichung: **Settings → Pages → Source: GitHub Actions.**
 
 ## Fahrplan
 
@@ -16,7 +27,7 @@ Noch NICHT: Speichern über einen Neustart hinweg (Etappe 2) und Teilen
 |---|---|
 | 0 ✅ | Grundstein: Toolchain, Design-System, eine Hülle, Verifikation |
 | 1 ✅ | Die drei Listen, lokal benutzbar |
-| 2 | Auf den Home-Bildschirm: Manifest, Icons, Service Worker, offline |
+| 2 ✅ | Bleibt: Speicher, Manifest, Icons, Service Worker, offline |
 | 3 | Teilen: Supabase, Beitritt per Code, Sync |
 | 4 | Live: Änderungen erscheinen, während beide offen haben |
 | 5 | Feinschliff: Mengen, Vorschläge, Undo, mehrere Listen |
@@ -34,10 +45,17 @@ Design-Systems ist thematisch neutral.
 npx tsc --noEmit
 npx jest --ci
 npx eslint src --ext .ts,.tsx
-npx expo export --platform web --clear
+npm run build:web                # Export + PWA-Angaben in die index.html
 npx serve dist -s -l 8901        # in einem zweiten Fenster
 node touren/rundgang.mjs
+node touren/bleibt.mjs
 ```
 
 `touren/rundgang.mjs` geht die drei Wege durch, für die es die App gibt, und
 prüft jeweils die sichtbare FOLGE — nicht, ob ein Knopf existiert.
+`touren/bleibt.mjs` lädt die Seite bewusst neu und prüft, was danach noch
+da ist.
+
+**Immer `npm run build:web` statt `expo export`.** Der Export allein lässt
+Manifest und Icons aus der `index.html` weg — die App wäre dann lauffähig,
+aber nicht installierbar.

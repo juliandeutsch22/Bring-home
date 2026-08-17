@@ -1,9 +1,11 @@
 // index.ts — welche Ablage gerade hängt.
 //
 // Eine Stelle, an der entschieden wird; die Bildschirme fragen nie danach.
-// In Etappe 2 kommt hier die schreibende Variante dazu, in Etappe 3 der
-// Abgleich — beides ohne Änderung an irgendeinem Bildschirm.
-import { InMemoryAblage, type Ablage } from './repositories';
+// Seit Etappe 2 ist es die SCHREIBENDE Variante; in Tests hängt weiterhin die
+// flüchtige daran, damit kein Test den Bestand eines anderen sieht. In
+// Etappe 3 kommt der Abgleich dazu — wieder ohne Änderung an einem Bildschirm.
+import { GespeicherteAblage } from './gespeichert';
+import { InMemoryAblage, type Ablage, type Datensatz } from './repositories';
 import type { Aufgabe, Artikel, NeueAufgabe, NeueZutat, NeuerArtikel, NeuerWunsch, Wunsch, Zutat } from './types';
 import { HAUSHALT } from './types';
 import { jetzt, neueId } from '@/lib/ids';
@@ -13,8 +15,26 @@ const rumpf = () => ({ id: neueId(), updatedAt: jetzt(), deletedAt: null });
 /** Neueste zuletzt — eine Einkaufsliste liest man von oben nach unten. */
 const nachSort = (a: { sort: number }, b: { sort: number }) => a.sort - b.sort;
 
+/**
+ * In Tests flüchtig, sonst schreibend. Ein Test, der auf den echten Speicher
+ * ginge, sähe den Bestand des vorherigen — und das ist die Sorte Fehler, die
+ * man erst nach Stunden findet.
+ */
+const fluechtig = process.env.NODE_ENV === 'test';
+
+function neu<T extends Datensatz, Neu>(
+  schluessel: string,
+  bauen: (eingabe: Neu, sort: number) => T,
+  ordnen: (a: T, b: T) => number,
+): Ablage<T, Neu> {
+  return fluechtig
+    ? new InMemoryAblage<T, Neu>(bauen, ordnen)
+    : new GespeicherteAblage<T, Neu>(bauen, ordnen, schluessel);
+}
+
 function baueArtikel(): Ablage<Artikel, NeuerArtikel> {
-  return new InMemoryAblage<Artikel, NeuerArtikel>(
+  return neu<Artikel, NeuerArtikel>(
+    'bring-home.artikel',
     (e, sort) => ({
       ...rumpf(),
       listeId: HAUSHALT,
@@ -29,7 +49,8 @@ function baueArtikel(): Ablage<Artikel, NeuerArtikel> {
 }
 
 function baueWuensche(): Ablage<Wunsch, NeuerWunsch> {
-  return new InMemoryAblage<Wunsch, NeuerWunsch>(
+  return neu<Wunsch, NeuerWunsch>(
+    'bring-home.wuensche',
     (e, sort) => ({
       ...rumpf(),
       gericht: e.gericht.trim(),
@@ -42,7 +63,8 @@ function baueWuensche(): Ablage<Wunsch, NeuerWunsch> {
 }
 
 function baueZutaten(): Ablage<Zutat, NeueZutat> {
-  return new InMemoryAblage<Zutat, NeueZutat>(
+  return neu<Zutat, NeueZutat>(
+    'bring-home.zutaten',
     (e, sort) => ({
       ...rumpf(),
       wunschId: e.wunschId,
@@ -56,7 +78,8 @@ function baueZutaten(): Ablage<Zutat, NeueZutat> {
 }
 
 function baueAufgaben(): Ablage<Aufgabe, NeueAufgabe> {
-  return new InMemoryAblage<Aufgabe, NeueAufgabe>(
+  return neu<Aufgabe, NeueAufgabe>(
+    'bring-home.aufgaben',
     (e, sort) => ({
       ...rumpf(),
       titel: e.titel.trim(),

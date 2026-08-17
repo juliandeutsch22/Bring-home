@@ -1,0 +1,213 @@
+-- schema.sql — einmal im Supabase-SQL-Editor ausführen.
+--
+-- Der Entwurf in einem Satz: eine Liste ist eine Kennung plus ein CODE. Wer den
+-- Code hat, darf beitreten; wer beigetreten ist, darf lesen und schreiben. Es
+-- gibt keine Konten, keine E-Mail-Adressen, keine Einladungs-Mails.
+--
+-- WICHTIG zur Sicherheit: der anon key steht im ausgelieferten Bundle und ist
+-- damit öffentlich — das ist so vorgesehen. Die einzige Verteidigung ist Row
+-- Level Security. Jede Tabelle unten hat sie AN, und keine Regel erlaubt etwas
+-- ohne Mitgliedschaft.
+
+-- Anonyme Anmeldung muss im Dashboard eingeschaltet sein:
+--   Authentication → Sign In / Providers → Anonymous sign-ins → an.
+-- Ohne das bekommt niemand ein auth.uid(), und alle Regeln unten sperren.
+
+create extension if not exists pgcrypto;
+
+-- ---------------------------------------------------------------- Haushalte
+
+create table if not exists haushalte (
+  id uuid primary key default gen_random_uuid(),
+  name text not null default 'Zuhause',
+  -- Der Beitritts-Code. Kurz genug zum Vorlesen, lang genug zum Nicht-Raten.
+  code text not null unique,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists mitglieder (
+  haushalt_id uuid not null references haushalte (id) on delete cascade,
+  nutzer_id uuid not null references auth.users (id) on delete cascade,
+  name text,
+  beigetreten_am timestamptz not null default now(),
+  primary key (haushalt_id, nutzer_id)
+);
+
+-- ------------------------------------------------------------------- Inhalt
+-- Alle vier tragen dieselben drei Sync-Felder wie im Client:
+-- id kommt vom GERÄT, updated_at entscheidet, deleted_at ist ein Grabstein.
+
+create table if not exists artikel (
+  id uuid primary key,
+  haushalt_id uuid not null references haushalte (id) on delete cascade,
+  text text not null,
+  menge text,
+  erledigt_am timestamptz,
+  von_wem text,
+  sort double precision not null default 0,
+  updated_at timestamptz not null,
+  deleted_at timestamptz
+);
+
+create table if not exists wuensche (
+  id uuid primary key,
+  haushalt_id uuid not null references haushalte (id) on delete cascade,
+  gericht text not null,
+  notiz text,
+  von_wem text,
+  sort double precision not null default 0,
+  updated_at timestamptz not null,
+  deleted_at timestamptz
+);
+
+create table if not exists zutaten (
+  id uuid primary key,
+  haushalt_id uuid not null references haushalte (id) on delete cascade,
+  wunsch_id uuid not null,
+  text text not null,
+  menge text,
+  uebernommen_am timestamptz,
+  sort double precision not null default 0,
+  updated_at timestamptz not null,
+  deleted_at timestamptz
+);
+
+create table if not exists aufgaben (
+  id uuid primary key,
+  haushalt_id uuid not null references haushalte (id) on delete cascade,
+  titel text not null,
+  erledigt_am timestamptz,
+  person text,
+  wartet_auf text,
+  sort double precision not null default 0,
+  updated_at timestamptz not null,
+  deleted_at timestamptz
+);
+
+-- Der Abgleich fragt immer „was hat sich seit X geändert" — dafür ein Index.
+create index if not exists idx_artikel_haushalt on artikel (haushalt_id, updated_at);
+create index if not exists idx_wuensche_haushalt on wuensche (haushalt_id, updated_at);
+create index if not exists idx_zutaten_haushalt on zutaten (haushalt_id, updated_at);
+create index if not exists idx_aufgaben_haushalt on aufgaben (haushalt_id, updated_at);
+
+-- ------------------------------------------------------- Row Level Security
+
+alter table haushalte enable row level security;
+alter table mitglieder enable row level security;
+alter table artikel enable row level security;
+alter table wuensche enable row level security;
+alter table zutaten enable row level security;
+alter table aufgaben enable row level security;
+
+-- Bin ich Mitglied dieses Haushalts?
+--
+-- `security definer` ist hier kein Bequemlichkeits-Trick, sondern nötig: die
+-- Funktion liest `mitglieder`, und würde sie das mit den Rechten des Aufrufers
+-- tun, griffe wieder die Regel auf `mitglieder` — die ihrerseits diese Funktion
+-- benutzt. Eine Regel, die sich selbst prüft, endet in einer Endlosschleife.
+create or replace function ist_mitglied(h uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from mitglieder m
+    where m.haushalt_id = h and m.nutzer_id = auth.uid()
+  );
+$$;
+
+-- Haushalte: sehen darf man nur den eigenen. Anlegen darf jeder Angemeldete
+-- (er wird gleich danach selbst Mitglied); der Code bleibt dabei sein Geheimnis.
+drop policy if exists haushalt_lesen on haushalte;
+create policy haushalt_lesen on haushalte for select using (ist_mitglied(id));
+drop policy if exists haushalt_anlegen on haushalte;
+create policy haushalt_anlegen on haushalte for insert with check (auth.uid() is not null);
+
+-- Mitglieder: die eigenen Zeilen und die des eigenen Haushalts.
+drop policy if exists mitglied_lesen on mitglieder;
+create policy mitglied_lesen on mitglieder for select using (ist_mitglied(haushalt_id));
+drop policy if exists mitglied_eintragen on mitglieder;
+create policy mitglied_eintragen on mitglieder for insert with check (nutzer_id = auth.uid());
+
+-- Inhalt: alles nur für Mitglieder. Vier Tabellen, dieselbe Regel.
+do $$
+declare t text;
+begin
+  foreach t in array array['artikel', 'wuensche', 'zutaten', 'aufgaben'] loop
+    execute format('drop policy if exists %I_lesen on %I', t, t);
+    execute format('create policy %I_lesen on %I for select using (ist_mitglied(haushalt_id))', t, t);
+    execute format('drop policy if exists %I_schreiben on %I', t, t);
+    execute format('create policy %I_schreiben on %I for insert with check (ist_mitglied(haushalt_id))', t, t);
+    execute format('drop policy if exists %I_aendern on %I', t, t);
+    execute format('create policy %I_aendern on %I for update using (ist_mitglied(haushalt_id)) with check (ist_mitglied(haushalt_id))', t, t);
+  end loop;
+end $$;
+
+-- Kein DELETE. Gelöscht wird über den Grabstein (`deleted_at`) — echtes Löschen
+-- ließe den Eintrag beim nächsten Abgleich vom anderen Gerät zurückkommen.
+
+-- -------------------------------------------------------------- Beitreten
+
+-- Der einzige Weg, Mitglied zu werden. Läuft mit erhöhten Rechten, weil er den
+-- Haushalt anhand des CODES finden muss — den man ohne Mitgliedschaft nicht
+-- lesen dürfte. Genau deshalb gibt die Funktion auch nur die Kennung zurück
+-- und nie den Code selbst: sie ist eine Tür, kein Fenster.
+create or replace function haushalt_beitreten(beitritts_code text, mein_name text default null)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare h uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'nicht angemeldet';
+  end if;
+
+  select id into h from haushalte where code = beitritts_code;
+  if h is null then
+    raise exception 'unbekannter Code';
+  end if;
+
+  insert into mitglieder (haushalt_id, nutzer_id, name)
+  values (h, auth.uid(), mein_name)
+  on conflict (haushalt_id, nutzer_id) do update set name = coalesce(excluded.name, mitglieder.name);
+
+  return h;
+end $$;
+
+-- Einen neuen Haushalt anlegen und gleich beitreten — in EINEM Schritt, damit
+-- kein Haushalt ohne Mitglied entstehen kann (den könnte danach niemand mehr
+-- sehen, nicht einmal der, der ihn angelegt hat).
+create or replace function haushalt_gruenden(haushalt_name text default 'Zuhause', mein_name text default null)
+returns table (id uuid, code text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare neuer_code text;
+declare neue_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'nicht angemeldet';
+  end if;
+
+  -- Acht Zeichen aus einem Alphabet ohne 0/O und 1/I — der Code wird vorgelesen.
+  neuer_code := upper(translate(encode(gen_random_bytes(6), 'base64'), '+/=OI01', 'XYZWVUT'));
+  neuer_code := substr(neuer_code, 1, 8);
+
+  insert into haushalte (name, code) values (haushalt_name, neuer_code)
+  returning haushalte.id into neue_id;
+
+  insert into mitglieder (haushalt_id, nutzer_id, name) values (neue_id, auth.uid(), mein_name);
+
+  return query select neue_id, neuer_code;
+end $$;
+
+-- Realtime: die vier Inhalts-Tabellen senden Änderungen an offene Geräte.
+alter publication supabase_realtime add table artikel;
+alter publication supabase_realtime add table wuensche;
+alter publication supabase_realtime add table zutaten;
+alter publication supabase_realtime add table aufgaben;
