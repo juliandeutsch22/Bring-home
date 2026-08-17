@@ -5,21 +5,22 @@
 //  · Nativ (iOS/Android als App): `expo-haptics`, volle Taptic Engine.
 //  · Android im Browser/als PWA: `navigator.vibrate()` — ein echter, wenn auch
 //    grober Motor. Millisekunden statt Nuancen.
-//  · iOS im Browser/als PWA: NICHTS. Safari kennt die Vibrations-API nicht, und
-//    es gibt keine zweite Tür.
+//  · iOS im Browser/als PWA: NICHTS. Am 17.08.2026 auf dem Gerät durchgemessen,
+//    nicht vermutet — mit einer Testseite, die vier Varianten nebeneinander
+//    zum Antippen anbot. Keine einzige hat getickt.
 //
-// Zur zweiten Tür, die hier einmal stand: seit iOS 17.4 löst das native
+// Damit ist auch der Kunstgriff erledigt, der hier einmal stand, und weil er
+// zäh ist, hier sein Nachruf: seit iOS 17.4 löst das native
 // Schalter-Bedienelement (`<input type="checkbox" switch>`) beim Umlegen einen
-// Tick aus. Daraus wurde der Kunstgriff, einen unsichtbaren Schalter per Skript
-// umzulegen — und der konnte nie funktionieren. Der Tick hängt daran, dass ein
-// MENSCH ein sichtbares Bedienelement berührt; `element.checked = !…` ist eine
-// Eigenschaftsänderung, kein Bedienen. Der Kunstgriff stand also als toter Code
-// in der App und hat vorgetäuscht, dass etwas getan wird.
+// Tick aus, heißt es. Daraus wurde die Idee, einen unsichtbaren Schalter per
+// Skript umzulegen. Das konnte schon im Ansatz nichts werden — der Tick hängt
+// daran, dass ein MENSCH ein sichtbares Bedienelement berührt, und
+// `element.checked = !…` ist eine Eigenschaftsänderung, kein Bedienen. Aber
+// auch die saubere Fassung, ein echter sichtbarer Schalter unter dem Finger,
+// blieb im Test stumm. Es gibt hier nichts zu retten.
 //
-// Ein Schalter, den man wirklich antippen müsste, wäre keine Lösung, sondern
-// eine andere App: die Häkchen im Einkauf sind gezeichnete Flächen, keine
-// System-Schalter, und sie durch iOS-Schalter zu ersetzen hieße, die ganze
-// Gestaltung an einen Nebeneffekt zu hängen.
+// WER ALSO IN EINEM JAHR HIERHER KOMMT: bitte nicht erneut anfangen. Wenn, dann
+// mit einer Messung auf einem echten Gerät, nicht mit einem Blogeintrag.
 //
 // Bleibt: auf iOS trägt der SICHTBARE Kanal die Bestätigung allein — das
 // Häkchen federt, die Zeile rutscht nach. Genau deshalb war Haptik hier von

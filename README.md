@@ -64,11 +64,28 @@ ausführlich in `supabase/migration-02-serverzeit.sql`.
 | 0 ✅ | Grundstein: Toolchain, Design-System, eine Hülle, Verifikation |
 | 1 ✅ | Die drei Listen, lokal benutzbar |
 | 2 ✅ | Bleibt: Speicher, Manifest, Icons, Service Worker, offline |
-| 2.1 ✅ | Bewegung und Haptik |
+| 2.1 ✅ | Bewegung; Haptik auf Android (auf iOS unmöglich, siehe unten) |
 | 3 ✅ | Teilen: Supabase, Beitritt per Code, Sync |
 | 4 ✅ | Live: Änderungen erscheinen, während beide offen haben |
 | 5 | Feinschliff: Mengen, Vorschläge, Undo, mehrere Listen |
 | 6 | Optional: Web-Push; native App für ein Gerät |
+
+## Was nicht geht, und warum nicht mehr daran gearbeitet wird
+
+**Haptik auf iOS im Browser.** Nicht „schwierig", sondern nicht vorhanden.
+Safari kennt `navigator.vibrate` nicht, und der viel zitierte Kunstgriff mit
+dem nativen Schalter-Bedienelement (`<input type="checkbox" switch>`, seit
+iOS 17.4) trägt ebenfalls nicht: am 17.08.2026 auf dem echten Gerät gemessen —
+vier Varianten nebeneinander, darunter ein sichtbarer Schalter direkt unter dem
+Finger — hat keine einzige getickt.
+
+Auf iOS trägt deshalb der sichtbare Kanal die Bestätigung allein, wofür er
+ohnehin gebaut ist: das Häkchen federt, die Zeile darunter rutscht nach. Haptik
+war hier nie das Signal, nur seine Verstärkung.
+
+Echte Haptik gäbe es allein mit einer nativen App — also mit genau dem
+Apple-Developer-Account, um den herum diese App entworfen wurde. Das ist eine
+Produktentscheidung, keine offene Aufgabe.
 
 ## Die Haut wechseln
 
