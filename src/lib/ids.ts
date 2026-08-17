@@ -7,8 +7,14 @@
 export function neueId(): string {
   const c = globalThis.crypto;
   if (c && typeof c.randomUUID === 'function') return c.randomUUID();
-  // Rückfall für Umgebungen ohne WebCrypto (ältere RN-Laufzeiten).
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  // Rückfall für Umgebungen ohne WebCrypto (ältere RN-Laufzeiten). Er muss
+  // ebenfalls eine echte UUID ergeben: seit Etappe 3 landen diese Kennungen in
+  // einer `uuid`-Spalte, und alles andere würde der Server zurückweisen —
+  // ausgerechnet auf dem Gerät, das den Rückfall überhaupt braucht.
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (z) => {
+    const r = Math.floor(Math.random() * 16);
+    return (z === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
 }
 
 /** Ein Zeitstempel in der Form, in der alles gespeichert wird. */

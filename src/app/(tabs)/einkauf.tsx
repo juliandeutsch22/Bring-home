@@ -14,7 +14,8 @@
 //    Übrige (umbenennen, Menge, löschen) liegt eine Ebene tiefer. Vorher war
 //    das Löschen ein einzelner Tipp direkt neben dem Abhaken; ein Danebengreifen
 //    war damit unwiderruflich.
-import { Pencil, Plus, ShoppingBasket } from 'lucide-react-native';
+import { Link2, Pencil, Plus, ShoppingBasket } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
@@ -37,6 +38,7 @@ import {
   useArtikelUmschalten,
   useWagenLeeren,
 } from '@/data/queries';
+import { useHaushalt } from '@/data/haushalt';
 import { hapticSelect, hapticSuccess } from '@/lib/haptics';
 import { findeArtikel, kuerze, teileListe } from '@/lib/listenLogik';
 import { webNoOutline } from '@/theme/layout';
@@ -45,6 +47,8 @@ import { R, Spacing, T } from '@/theme/theme.tokens';
 
 export default function EinkaufScreen() {
   const colors = useColors();
+  const router = useRouter();
+  const geteilt = useHaushalt((s) => s.id !== null);
   const { data: artikel } = useArtikel();
   const anlegen = useArtikelAnlegen();
   const umschalten = useArtikelUmschalten();
@@ -82,6 +86,18 @@ export default function EinkaufScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
           <ShoppingBasket size={26} color={colors.accentA} strokeWidth={2.2} />
           <Type variant="title" style={{ flex: 1 }}>Einkauf</Type>
+          {/* Getönt heißt in dieser App „an": das Glied trägt seine Farbe erst,
+              wenn die Liste wirklich an einem zweiten Gerät hängt. */}
+          <PressableScale
+            accessibilityLabel={geteilt ? 'Geteilte Liste' : 'Liste teilen'}
+            onPress={() => {
+              hapticSelect();
+              router.push('/haushalt');
+            }}
+            style={{ padding: Spacing.xs }}
+          >
+            <Link2 size={20} color={geteilt ? colors.accentA : colors.text3} strokeWidth={2.2} />
+          </PressableScale>
         </View>
         <Type variant="caption" tone="text3" style={{ marginTop: 2 }} tabular>
           {offen.length === 1 ? '1 Sache fehlt' : `${offen.length} Sachen fehlen`}

@@ -34,8 +34,14 @@ create table if not exists mitglieder (
 );
 
 -- ------------------------------------------------------------------- Inhalt
--- Alle vier tragen dieselben drei Sync-Felder wie im Client:
+-- Alle vier tragen dieselben Sync-Felder wie im Client:
 -- id kommt vom GERÄT, updated_at entscheidet, deleted_at ist ein Grabstein.
+--
+-- Dazu `server_at`, das NUR der Server setzt (Trigger weiter unten). Zwei
+-- Zeiten, zwei Aufgaben: `updated_at` entscheidet Konflikte, `server_at`
+-- entscheidet, was der Abgleich holt. Nur die zweite ist monoton — eine
+-- nachgehende Geräteuhr könnte sonst Einträge erzeugen, die kein anderes Gerät
+-- je zu sehen bekommt.
 
 create table if not exists artikel (
   id uuid primary key,
@@ -46,6 +52,7 @@ create table if not exists artikel (
   von_wem text,
   sort double precision not null default 0,
   updated_at timestamptz not null,
+  server_at timestamptz not null default now(),
   deleted_at timestamptz
 );
 
@@ -57,6 +64,7 @@ create table if not exists wuensche (
   von_wem text,
   sort double precision not null default 0,
   updated_at timestamptz not null,
+  server_at timestamptz not null default now(),
   deleted_at timestamptz
 );
 
@@ -72,6 +80,7 @@ create table if not exists zutaten (
   haben_wir boolean not null default false,
   sort double precision not null default 0,
   updated_at timestamptz not null,
+  server_at timestamptz not null default now(),
   deleted_at timestamptz
 );
 
@@ -84,14 +93,33 @@ create table if not exists aufgaben (
   wartet_auf text,
   sort double precision not null default 0,
   updated_at timestamptz not null,
+  server_at timestamptz not null default now(),
   deleted_at timestamptz
 );
 
+-- `server_at` setzt der Server, nie der Aufrufer — sonst wäre es wieder eine
+-- Geräteuhr, nur mit anderem Namen.
+create or replace function setze_server_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.server_at := now();
+  return new;
+end $$;
+
 -- Der Abgleich fragt immer „was hat sich seit X geändert" — dafür ein Index.
-create index if not exists idx_artikel_haushalt on artikel (haushalt_id, updated_at);
-create index if not exists idx_wuensche_haushalt on wuensche (haushalt_id, updated_at);
-create index if not exists idx_zutaten_haushalt on zutaten (haushalt_id, updated_at);
-create index if not exists idx_aufgaben_haushalt on aufgaben (haushalt_id, updated_at);
+do $$
+declare t text;
+begin
+  foreach t in array array['artikel', 'wuensche', 'zutaten', 'aufgaben'] loop
+    execute format('create index if not exists idx_%I_server on %I (haushalt_id, server_at)', t, t);
+    execute format('drop trigger if exists %I_server_at on %I', t, t);
+    execute format(
+      'create trigger %I_server_at before insert or update on %I for each row execute function setze_server_at()',
+      t, t);
+  end loop;
+end $$;
 
 -- ------------------------------------------------------- Row Level Security
 
