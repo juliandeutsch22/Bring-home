@@ -67,5 +67,11 @@ await schreibe('Aufgabe hinzufügen', 'Heizung entlüften');
 await p.waitForTimeout(600);
 await p.screenshot({ path: `${OUT}-wohnung.png` });
 
+// Teilen: der Bildschirm, den man einmal sieht und danach nie wieder.
+await tab('Einkauf');
+await tippe('Liste teilen');
+await p.waitForTimeout(700);
+await p.screenshot({ path: `${OUT}-teilen.png` });
+
 console.log(fehler.length ? fehler.join(' | ') : 'keine Seitenfehler');
 await b.close();
