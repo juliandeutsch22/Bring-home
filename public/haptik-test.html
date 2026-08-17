@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Haptik-Test — bring-home</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --grund: #F2EFE6; --platte: #FAF7EF; --strich: #D9D2C2;
+    --text: #1F1D18; --text2: #4A463C; --text3: #8A8474;
+    --a: #2B5FA6; --b: #7E8C5C;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --grund: #14161A; --platte: #1C1F25; --strich: #2E333B;
+      --text: #ECE7DC; --text2: #C2BCAF; --text3: #8A8474;
+      --a: #7FA9E8; --b: #A8B583;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 20px 64px;
+    background: var(--grund); color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    max-width: 560px; margin-inline: auto;
+  }
+  h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: .01em; }
+  .unter { color: var(--text3); font-size: 14px; margin: 0 0 24px; }
+  section {
+    background: var(--platte); border-radius: 16px; padding: 18px;
+    margin-bottom: 14px; border: 1px solid var(--strich);
+  }
+  h2 { font-size: 13px; letter-spacing: .12em; text-transform: uppercase;
+       color: var(--text3); margin: 0 0 8px; font-weight: 600; }
+  p { margin: 0 0 14px; color: var(--text2); font-size: 15px; }
+  button {
+    font: inherit; font-weight: 600; color: #fff; background: var(--a);
+    border: 0; border-radius: 12px; padding: 14px 18px; width: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active { filter: brightness(.92); }
+  .reihe { display: flex; align-items: center; gap: 14px; }
+  .reihe label { font-size: 15px; color: var(--text2); }
+  input[switch], input[type=checkbox] { width: 52px; height: 32px; flex: none; }
+  .antwort { margin-top: 10px; font-size: 14px; color: var(--b); min-height: 1.4em; font-weight: 600; }
+  dl { margin: 0; font-size: 13px; color: var(--text3); }
+  dt { font-weight: 600; margin-top: 8px; color: var(--text2); }
+  dd { margin: 0; word-break: break-word; }
+  .schluss { color: var(--text3); font-size: 13px; margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<h1>Haptik-Test</h1>
+<p class="unter">
+  Vier Varianten. Tippe jede EINZELN an und merke dir, ob dein Telefon
+  spürbar tickt — nicht ob sich etwas bewegt, sondern ob du es in der Hand
+  fühlst. Am besten ohne Hülle und nicht im Stummmodus-Zweifel: die Taptic
+  Engine ist unabhängig vom Lautlos-Schalter.
+</p>
+
+<section>
+  <h2>1 · Vibrations-API</h2>
+  <p>Der Standardweg. Auf Android ein echter Motor, auf iOS bisher nicht vorhanden.</p>
+  <button id="k1">navigator.vibrate(20)</button>
+  <div class="antwort" id="a1"></div>
+</section>
+
+<section>
+  <h2>2 · Echter Schalter, direkt angetippt</h2>
+  <p>
+    Der Kunstgriff in seiner einzigen Form, die je funktioniert hat: ein
+    sichtbares <code>&lt;input type="checkbox" switch&gt;</code>, das DU
+    berührst. Tippe auf den Schalter selbst.
+  </p>
+  <div class="reihe">
+    <input type="checkbox" switch id="s2">
+    <label for="s2">hier drauf tippen</label>
+  </div>
+</section>
+
+<section>
+  <h2>3 · Schalter über sein Etikett</h2>
+  <p>Derselbe Schalter, aber der Tipp landet auf dem Text daneben. Klärt, ob ein weitergereichter Klick zählt.</p>
+  <div class="reihe">
+    <input type="checkbox" switch id="s3">
+    <label for="s3">auf DIESEN TEXT tippen, nicht auf den Schalter</label>
+  </div>
+</section>
+
+<section>
+  <h2>4 · Schalter per Skript umgelegt</h2>
+  <p>
+    Das, was in der App stand. Der Schalter ist sichtbar, aber niemand berührt
+    ihn — ein Knopf legt ihn um. Ich erwarte hier nichts; die Variante steht
+    zum Vergleich da.
+  </p>
+  <div class="reihe">
+    <input type="checkbox" switch id="s4">
+    <span>wird vom Knopf umgelegt</span>
+  </div>
+  <button id="k4" style="margin-top:14px">Schalter per Skript umlegen</button>
+</section>
+
+<section>
+  <h2>Was dieses Gerät sagt</h2>
+  <dl id="diagnose"></dl>
+</section>
+
+<p class="schluss">
+  Sag mir einfach, welche Nummern getickt haben — auch „keine" ist ein
+  Ergebnis. Danach fliegt aus der App raus, was ohnehin nichts tut.
+</p>
+
+<script>
+  document.getElementById('k1').addEventListener('click', function () {
+    var da = typeof navigator.vibrate === 'function';
+    if (da) { try { navigator.vibrate(20); } catch (e) {} }
+    document.getElementById('a1').textContent = da
+      ? 'Aufruf abgesetzt — hat es getickt?'
+      : 'Diese Seite hat gar keine vibrate()-Funktion. Damit ist 1 hier unmöglich.';
+  });
+
+  document.getElementById('k4').addEventListener('click', function () {
+    var s = document.getElementById('s4');
+    s.checked = !s.checked;
+  });
+
+  var probe = document.createElement('input');
+  probe.type = 'checkbox';
+  var zeilen = [
+    ['vibrate() vorhanden', typeof navigator.vibrate === 'function' ? 'ja' : 'nein'],
+    ['switch-Attribut bekannt', ('switch' in probe) ? 'ja' : 'nein (dann sind 2–4 chancenlos)'],
+    ['als App vom Home-Bildschirm', (window.navigator.standalone === true ||
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)) ? 'ja' : 'nein (im Browser)'],
+    ['Kennung', navigator.userAgent],
+  ];
+  var dl = document.getElementById('diagnose');
+  zeilen.forEach(function (z) {
+    var dt = document.createElement('dt'); dt.textContent = z[0];
+    var dd = document.createElement('dd'); dd.textContent = z[1];
+    dl.appendChild(dt); dl.appendChild(dd);
+  });
+</script>
+
+</body>
+</html>

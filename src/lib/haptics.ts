@@ -5,15 +5,27 @@
 //  · Nativ (iOS/Android als App): `expo-haptics`, volle Taptic Engine.
 //  · Android im Browser/als PWA: `navigator.vibrate()` — ein echter, wenn auch
 //    grober Motor. Millisekunden statt Nuancen.
-//  · iOS im Browser/als PWA: Safari unterstützt die Vibrations-API NICHT.
-//    Es gibt genau einen Weg, und der ist ein Kunstgriff: seit iOS 17.4 löst
-//    das native Schalter-Bedienelement (`<input type="checkbox" switch>`) beim
-//    Umlegen einen Tick aus. Legt man einen unsichtbaren Schalter um, spürt man
-//    ihn. Das ist kein API, sondern ein Nebeneffekt — Apple kann ihn jederzeit
-//    abstellen, und in älteren iOS-Fassungen passiert schlicht nichts.
+//  · iOS im Browser/als PWA: NICHTS. Safari kennt die Vibrations-API nicht, und
+//    es gibt keine zweite Tür.
 //
-// Genau deshalb ist Haptik hier NIE tragend: sie bestätigt, was man ohnehin
-// sieht. Fällt sie aus, fehlt nichts.
+// Zur zweiten Tür, die hier einmal stand: seit iOS 17.4 löst das native
+// Schalter-Bedienelement (`<input type="checkbox" switch>`) beim Umlegen einen
+// Tick aus. Daraus wurde der Kunstgriff, einen unsichtbaren Schalter per Skript
+// umzulegen — und der konnte nie funktionieren. Der Tick hängt daran, dass ein
+// MENSCH ein sichtbares Bedienelement berührt; `element.checked = !…` ist eine
+// Eigenschaftsänderung, kein Bedienen. Der Kunstgriff stand also als toter Code
+// in der App und hat vorgetäuscht, dass etwas getan wird.
+//
+// Ein Schalter, den man wirklich antippen müsste, wäre keine Lösung, sondern
+// eine andere App: die Häkchen im Einkauf sind gezeichnete Flächen, keine
+// System-Schalter, und sie durch iOS-Schalter zu ersetzen hieße, die ganze
+// Gestaltung an einen Nebeneffekt zu hängen.
+//
+// Bleibt: auf iOS trägt der SICHTBARE Kanal die Bestätigung allein — das
+// Häkchen federt, die Zeile rutscht nach. Genau deshalb war Haptik hier von
+// Anfang an nie tragend; sie bestätigt, was man ohnehin sieht. Fällt sie aus,
+// fehlt nichts. Echte Haptik auf iOS gäbe es nur mit einer nativen App, und
+// die wurde für diese App bewusst nicht gewählt.
 import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -21,53 +33,17 @@ const nativ = Platform.OS === 'ios' || Platform.OS === 'android';
 const web = Platform.OS === 'web';
 
 /**
- * Der unsichtbare Schalter für iOS. Wird beim ersten Bedarf angelegt und dann
- * wiederverwendet — ein Element, kein Element pro Tipp.
- *
- * `opacity: 0` statt `display: none`: ein ausgeblendetes Bedienelement wird von
- * Safari nicht bedient, und dann bliebe der Tick aus. Es liegt deshalb da,
- * misst 1×1 Pixel und fängt keine Berührungen ab.
+ * Im Browser gibt es genau einen Weg, und wo es ihn nicht gibt, passiert
+ * nichts. Kein Ersatz, kein Kunstgriff — ein stiller Fehlschlag ist besser als
+ * Code, der Arbeit vortäuscht.
  */
-let schalter: HTMLInputElement | null = null;
-
-function iosTick(): void {
-  if (typeof document === 'undefined') return;
-  try {
-    if (!schalter) {
-      schalter = document.createElement('input');
-      schalter.type = 'checkbox';
-      // `switch` ist ein Attribut, kein Typ — TypeScript kennt es nicht.
-      schalter.setAttribute('switch', '');
-      schalter.setAttribute('aria-hidden', 'true');
-      schalter.tabIndex = -1;
-      Object.assign(schalter.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '1px',
-        height: '1px',
-        opacity: '0',
-        pointerEvents: 'none',
-      } as Partial<CSSStyleDeclaration>);
-      document.body.appendChild(schalter);
-    }
-    // Umlegen — die Richtung ist egal, der Tick kommt bei jeder Änderung.
-    schalter.checked = !schalter.checked;
-  } catch {
-    /* Kein Schalter, kein Tick. Kein Problem. */
-  }
-}
-
 function webTick(ms: number): void {
-  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-    try {
-      navigator.vibrate(ms);
-      return;
-    } catch {
-      /* fällt unten durch */
-    }
+  if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+  try {
+    navigator.vibrate(ms);
+  } catch {
+    /* Ein verweigerter Tick ist kein Grund, irgendetwas anzuhalten. */
   }
-  iosTick();
 }
 
 /** Leichter Tap — für Knöpfe und Auswahl. */
@@ -94,6 +70,5 @@ export function hapticSuccess(): void {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     return;
   }
-  // Zwei kurze statt einer langen: „fertig" klingt anders als „gemerkt".
   if (web) webTick(14);
 }
