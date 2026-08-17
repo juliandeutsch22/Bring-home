@@ -14,17 +14,25 @@ und gleicht sich ab, sobald es wieder da ist.
 Ohne diese drei bleibt die App genau so nutzbar wie vorher — nur eben je Gerät
 für sich. Sie sagt das auf dem Teilen-Bildschirm auch, statt still zu scheitern.
 
-1. **SQL-Editor:** `supabase/migration-01-zutaten.sql` ausführen, danach
-   `supabase/migration-02-serverzeit.sql`. (Bei einem frischen Projekt genügt
-   `supabase/schema.sql` allein — dort ist beides schon enthalten. `schema.sql`
+1. **SQL-Editor:** die Migrationen der Reihe nach ausführen —
+   `migration-01-zutaten.sql`, `migration-02-serverzeit.sql`,
+   `migration-03-code.sql`. (Bei einem frischen Projekt genügt
+   `supabase/schema.sql` allein — dort ist alles schon enthalten. `schema.sql`
    legt die Tabellen mit `create table if not exists` an und sieht deshalb bei
    einem bestehenden Projekt gar nicht mehr hin, ob die Spalten noch stimmen.)
 2. **Anonyme Anmeldung einschalten:** Authentication → Sign In / Providers →
    *Anonymous sign-ins* → an. Ohne das gibt es kein `auth.uid()`, und jede
-   Zugriffsregel sperrt. (Am 17.08.2026 gegen das Projekt geprüft: sie war AUS,
-   ebenso fehlten beide Migrationen.)
+   Zugriffsregel sperrt.
 3. **Realtime:** Database → Replication → die vier Inhalts-Tabellen freigeben,
    falls `alter publication` in `schema.sql` nicht gegriffen hat.
+
+Warum es drei Migrationen sind und nicht eine: sie sind aus echten Fehlschlägen
+gegen das laufende Projekt entstanden, jeder mit seiner Begründung in der Datei.
+Migration 03 ist die lehrreichste — `gen_random_bytes` gehört zu `pgcrypto`, und
+Supabase legt Erweiterungen im Schema `extensions` ab, während die Funktion mit
+engem `search_path = public` läuft. Sie griff also nach etwas, das für sie nicht
+sichtbar war. Behoben nicht durch einen weiteren Suchpfad, sondern indem die
+Abhängigkeit entfällt.
 
 Und für die Veröffentlichung: **Settings → Pages → Build and deployment →
 Source: „GitHub Actions"** auswählen. Ohne das scheitert der Workflow mit

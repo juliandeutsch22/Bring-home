@@ -220,14 +220,29 @@ set search_path = public
 as $$
 declare neuer_code text;
 declare neue_id uuid;
+declare versuch int := 0;
 begin
   if auth.uid() is null then
     raise exception 'nicht angemeldet';
   end if;
 
-  -- Acht Zeichen aus einem Alphabet ohne 0/O und 1/I — der Code wird vorgelesen.
-  neuer_code := upper(translate(encode(gen_random_bytes(6), 'base64'), '+/=OI01', 'XYZWVUT'));
-  neuer_code := substr(neuer_code, 1, 8);
+  -- Acht Zeichen zum Vorlesen. Bewusst aus `gen_random_uuid()` (Postgres-Kern)
+  -- und NICHT aus `gen_random_bytes` (pgcrypto): Supabase legt Erweiterungen im
+  -- Schema `extensions` ab, diese Funktion läuft aber mit engem
+  -- `search_path = public` — und ein enger Suchpfad ist bei `security definer`
+  -- die halbe Sicherheit. Die Abhängigkeit herauszunehmen ist billiger, als den
+  -- Pfad zu weiten.
+  --
+  -- Aus dem Hex-Alphabet fallen 0 und 1 heraus (sie sehen aus wie O und I);
+  -- sechzehn Zeichen bleiben, also gut vier Milliarden Möglichkeiten.
+  loop
+    versuch := versuch + 1;
+    neuer_code := substr(upper(translate(replace(gen_random_uuid()::text, '-', ''), '01', 'xy')), 1, 8);
+    exit when not exists (select 1 from haushalte h where h.code = neuer_code);
+    if versuch >= 5 then
+      raise exception 'Es ließ sich kein freier Code finden.';
+    end if;
+  end loop;
 
   insert into haushalte (name, code) values (haushalt_name, neuer_code)
   returning haushalte.id into neue_id;

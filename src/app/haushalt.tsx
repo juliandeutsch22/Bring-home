@@ -33,6 +33,13 @@ export default function HaushaltScreen() {
 
   const laedt = stand === 'laedt';
 
+  const beitretenJetzt = () => {
+    if (!eingabe.trim()) return;
+    hapticSuccess();
+    void beitreten(eingabe);
+    setEingabe('');
+  };
+
   const teilen = async () => {
     if (!code) return;
     hapticSuccess();
@@ -146,11 +153,16 @@ export default function HaushaltScreen() {
       <Reveal delay={90}>
         <GlassPanel>
           <Type variant="eyebrow" tone="text3">{id ? 'Zu einer anderen wechseln' : 'Code bekommen?'}</Type>
+          {/* Das Feld über die volle Breite, der Knopf DARUNTER — und nicht
+              rechts daneben. Nebeneinander wurde „Beitreten" auf einem schmalen
+              Gerät angeschnitten: ein Textknopf in einer Zeile mit einem
+              dehnbaren Feld hat keine Breite, auf der er bestehen könnte. So
+              liegt er außerdem genauso wie „Geteilte Liste anlegen" im Feld
+              darüber. */}
           <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              gap: Spacing.sm,
               borderRadius: R.lg,
               borderWidth: 1,
               borderColor: colors.chipBorder,
@@ -163,35 +175,26 @@ export default function HaushaltScreen() {
               accessibilityLabel="Code eintippen"
               value={eingabe}
               onChangeText={setEingabe}
-              onSubmitEditing={() => {
-                if (!eingabe.trim()) return;
-                hapticSuccess();
-                void beitreten(eingabe);
-                setEingabe('');
-              }}
+              onSubmitEditing={beitretenJetzt}
               placeholder="Code"
               placeholderTextColor={colors.text3}
               autoCapitalize="characters"
               autoCorrect={false}
               returnKeyType="done"
               style={[
-                { flex: 1, fontSize: T.md, color: colors.text, paddingVertical: Spacing.sm + 4, minHeight: 24, letterSpacing: 2 },
+                { flex: 1, minWidth: 0, fontSize: T.md, color: colors.text, paddingVertical: Spacing.sm + 4, minHeight: 24, letterSpacing: 2 },
                 webNoOutline,
               ]}
             />
-            <PressableScale
-              accessibilityLabel="Beitreten"
-              onPress={() => {
-                if (!eingabe.trim()) return;
-                hapticSuccess();
-                void beitreten(eingabe);
-                setEingabe('');
-              }}
-              style={{ padding: Spacing.xs, opacity: eingabe.trim() ? 1 : 0.35 }}
-            >
-              <Type variant="label" tone="accentA">Beitreten</Type>
-            </PressableScale>
           </View>
+          <Seam marginVertical={Spacing.md} />
+          <PressableScale
+            accessibilityLabel="Beitreten"
+            onPress={beitretenJetzt}
+            style={{ alignSelf: 'flex-start', opacity: eingabe.trim() ? 1 : 0.35 }}
+          >
+            <Type variant="label" tone="accentA">Beitreten</Type>
+          </PressableScale>
         </GlassPanel>
       </Reveal>
 

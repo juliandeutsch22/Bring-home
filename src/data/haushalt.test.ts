@@ -46,6 +46,34 @@ describe('lesbar', () => {
     // nachschlagen, und „irgendwas ging schief" nicht.
     expect(lesbar(new Error('teapot 418'))).toBe('teapot 418');
   });
+
+  // Der Fall, der es bis auf den Bildschirm geschafft hat: ein Supabase-Fehler
+  // ist ein EINFACHES OBJEKT, keine `Error`-Instanz. `String(e)` ergibt darauf
+  // „[object Object]" — und genau das stand dann da, wo die Erklärung stehen
+  // sollte.
+  it('liest ein einfaches Fehlerobjekt statt „[object Object]" zu zeigen', () => {
+    const postgrest = {
+      code: '42883',
+      details: null,
+      hint: 'No function matches the given name and argument types.',
+      message: 'function gen_random_bytes(integer) does not exist',
+    };
+    const satz = lesbar(postgrest);
+    expect(satz).not.toContain('[object Object]');
+    expect(satz).toContain('gen_random_bytes');
+    expect(satz).toContain('SQL-Editor');
+  });
+
+  it('erkennt den abgeschalteten Anbieter auch am Feld `error_code`', () => {
+    // So kommt er vom Auth-Endpunkt: kein `code`, sondern `error_code`, und
+    // die Meldung heißt `msg` statt `message`.
+    const auth = { code: 422, error_code: 'anonymous_provider_disabled', msg: 'so nicht' };
+    expect(lesbar(auth)).toContain('Anonymous sign-ins');
+  });
+
+  it('gibt zur Not das ganze Objekt aus, statt zu schweigen', () => {
+    expect(lesbar({ seltsam: true })).toContain('seltsam');
+  });
 });
 
 describe('mitFrist', () => {

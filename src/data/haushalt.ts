@@ -175,9 +175,49 @@ export const useHaushalt = create<Laden>((setze) => ({
  * Deshalb wird auch der Rohtext durchgereicht, wenn nichts passt: eine fremde
  * englische Fehlermeldung ist unschön, aber sie lässt sich nachschlagen.
  */
+/**
+ * Den Wortlaut aus einem Fehler holen — egal, welche Gestalt er hat.
+ *
+ * Der Grund für diese Funktion: ein Supabase-Fehler ist ein EINFACHES OBJEKT,
+ * keine `Error`-Instanz. `String(e)` ergibt darauf „[object Object]", und genau
+ * das stand eine Version lang auf dem Bildschirm — die Meldung, die alles
+ * erklären sollte, erklärte nichts. Ein Fehler, der sich nicht in Worte fassen
+ * lässt, ist schlimmer als einer, der englisch ist.
+ *
+ * Deshalb werden alle Felder eingesammelt, die etwas sagen könnten, und zur Not
+ * das ganze Objekt als JSON gezeigt.
+ */
+function wortlaut(e: unknown): string {
+  if (typeof e === 'string') return e;
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'object' && e !== null) {
+    const o = e as Record<string, unknown>;
+    const teile = ['message', 'msg', 'error_description', 'error', 'details', 'hint']
+      .map((k) => o[k])
+      .filter((w): w is string => typeof w === 'string' && w.length > 0);
+    if (teile.length > 0) return [...new Set(teile)].join(' — ');
+    try {
+      return JSON.stringify(e);
+    } catch {
+      return 'Unbekannter Fehler.';
+    }
+  }
+  return String(e);
+}
+
 export function lesbar(e: unknown): string {
-  const roh = e instanceof Error ? e.message : String(e);
-  const code = typeof e === 'object' && e !== null && 'code' in e ? String((e as { code: unknown }).code) : '';
+  const roh = wortlaut(e);
+  // BEIDE Kennungen, nicht die erste beste: der Auth-Endpunkt schickt `code`
+  // (422) UND `error_code` (`anonymous_provider_disabled`) — wer nur `code`
+  // liest, hat die Zahl und nicht den Grund.
+  const code =
+    typeof e === 'object' && e !== null
+      ? ['code', 'error_code', 'name']
+          .map((k) => (e as Record<string, unknown>)[k])
+          .filter((w) => w != null)
+          .map(String)
+          .join(' ')
+      : '';
 
   if (/anonymous_provider_disabled/i.test(code) || /anonymous sign-ins are disabled/i.test(roh)) {
     return 'Der Server lässt anonyme Anmeldungen nicht zu. In Supabase: Authentication → Sign In / Providers → „Anonymous sign-ins" einschalten und speichern.';
@@ -185,8 +225,11 @@ export function lesbar(e: unknown): string {
   if (/unbekannter Code/i.test(roh)) return 'Diesen Code gibt es nicht. Vertippt?';
   if (/nicht angemeldet/i.test(roh)) return 'Die Anmeldung am Server hat nicht geklappt.';
   if (/antwortet nicht/i.test(roh)) return 'Der Server antwortet nicht. Die Liste bleibt so lange auf diesem Gerät.';
-  if (/does not exist|schema cache|PGRST/i.test(roh + code)) {
-    return 'Die Datenbank ist noch nicht auf dem Stand der App. Die beiden Dateien in `supabase/` im SQL-Editor ausführen.';
+  if (/does not exist|schema cache|PGRST|42883|42703/i.test(roh + code)) {
+    // Der Wortlaut bleibt DRAN. Er nennt genau die Funktion oder Spalte, die
+    // fehlt — und ohne ihn hieße die Meldung nur „irgendwas an der Datenbank",
+    // was einen ganzen Nachmittag kosten kann.
+    return `Die Datenbank ist noch nicht auf dem Stand der App. Die Dateien in „supabase/" im SQL-Editor ausführen. (${roh})`;
   }
   if (/fetch|network|Failed to fetch/i.test(roh)) return 'Kein Netz. Die Liste bleibt so lange auf diesem Gerät.';
   return roh;
