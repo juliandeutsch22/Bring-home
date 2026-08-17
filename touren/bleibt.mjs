@@ -53,6 +53,29 @@ const appleIcon = await p.evaluate(() => document.querySelector('link[rel="apple
 pruef('iOS findet sein Icon', appleIcon === `${BASIS}/icons/icon-180.png`, String(appleIcon));
 pruef('das Icon gibt es wirklich', (await p.request.get(`${BASE}/icons/icon-180.png`)).ok());
 
+// Die drei Angaben, an denen der Rand oben hängt. Sie waren einmal falsch, und
+// das sah man erst auf einem echten iPhone: ein weißer Balken unter der Notch,
+// die App darunter angeschnitten. Hier stehen sie, damit das nicht zurückkommt.
+const randKopf = await p.evaluate(() => ({
+  viewport: document.querySelector('meta[name="viewport"]')?.getAttribute('content') ?? '',
+  statusleiste: document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.getAttribute('content') ?? '',
+  grund: getComputedStyle(document.body).backgroundColor,
+}));
+pruef('die Seite reicht bis unter die Notch', randKopf.viewport.includes('viewport-fit=cover'), randKopf.viewport);
+pruef(
+  'die Statusleiste ist durchscheinend, nicht weiß',
+  randKopf.statusleiste === 'black-translucent',
+  randKopf.statusleiste,
+);
+// Weiß und Durchsichtig sind beide falsch: dort, wo nichts gezeichnet ist,
+// käme sonst das Weiß des Browsers durch.
+pruef(
+  'hinter der App liegt eine Farbe, nicht Weiß',
+  !/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/.test(randKopf.grund) &&
+    !/rgb\(255,\s*255,\s*255\)/.test(randKopf.grund),
+  randKopf.grund,
+);
+
 console.log('\n2) Der Service Worker meldet sich an');
 const angemeldet = await p.evaluate(async () => {
   if (!('serviceWorker' in navigator)) return 'kein Support';
