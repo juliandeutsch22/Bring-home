@@ -22,11 +22,10 @@ export type TypeProps = RNTextProps & {
   style?: StyleProp<TextStyle>;
 };
 
-// Headings: Fraunces — eine weiche, leicht altmodische Antiqua mit
-// handgeschnittenem Zug. Sie passt zu einem Zettel, nicht zu einer Tabelle.
-// POSITIVES Tracking (nie eng gesetzt). Body bleibt System-Font (Lesbarkeit in
-// Listen).
-const HEAD = 'Fraunces_600SemiBold';
+// Headings: Cormorant Garamond — klassische Antiqua mit hohem Strichkontrast.
+// POSITIVES Tracking (Inschriften sind gesperrt, nie eng). Body bleibt
+// System-Font (Lesbarkeit in Listen).
+const HEAD = 'CormorantGaramond_700Bold';
 
 const VARIANT_STYLE: Record<Variant, TextStyle> = {
   hero: { fontFamily: HEAD, fontSize: T.hero + 4, lineHeight: (T.hero + 4) * 1.15, letterSpacing: 0.3 },

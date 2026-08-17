@@ -6,8 +6,12 @@
 // bleibt unangetastet.
 //
 // Eine Variante auszuprobieren heißt: EINE Zeile unten umstellen.
+//
+// Gewählt ist `stoa` — dieselbe Haut wie die Schwester-App. Die Alternativen
+// bleiben stehen: sie haben nichts gekostet und ersparen beim nächsten Zweifel
+// das Wiederherleiten.
 
-export type SkinName = 'leinen' | 'emaille' | 'holz';
+export type SkinName = 'stoa' | 'leinen' | 'emaille' | 'holz';
 
 type Skin = {
   name: SkinName;
@@ -43,6 +47,47 @@ type Materialtoene = {
  * ohne Farbe — und ein drittes Alarm-Rot wird nicht vermisst.
  */
 const SKINS: Record<SkinName, Skin> = {
+  // Die Haut aus Stoa, unverändert übernommen: Marmor und Ägäis. Kuppel-Blau
+  // trägt die Handlung, der Oliven-Zweig erdet Zweitinformationen.
+  stoa: {
+    name: 'stoa',
+    beschreibung: 'Stoa — Marmor, Kuppel-Blau, Oliv',
+    hell: {
+      a: '#2B5FA6',
+      b: '#7E8C5C',
+      bg: '#F4F1E8',
+      bg2: '#FBF7EC',
+      bg3: '#EFEBDF',
+      bg4: '#E5E0D1',
+      chip: '#EFEBDE',
+      chipBorder: 'rgba(50,50,40,0.12)',
+      sunk: '#EBE6D6',
+      border: 'rgba(50,50,40,0.12)',
+      border2: 'rgba(50,50,40,0.18)',
+      border3: 'rgba(50,50,40,0.30)',
+      text: '#1E1D18',
+      text2: '#565349',
+      text3: '#93907F',
+    },
+    dunkel: {
+      a: '#7BA7DC',
+      b: '#9DAF7E',
+      bg: '#0B0E13',
+      bg2: '#1A1F28',
+      bg3: '#1A2029',
+      bg4: '#222A34',
+      chip: 'rgba(255,255,255,0.07)',
+      chipBorder: 'rgba(255,255,255,0.10)',
+      sunk: 'rgba(0,0,0,0.28)',
+      border: 'rgba(255,255,255,0.12)',
+      border2: 'rgba(255,255,255,0.20)',
+      border3: 'rgba(255,255,255,0.32)',
+      text: '#FFFFFF',
+      text2: 'rgba(255,255,255,0.70)',
+      text3: 'rgba(255,255,255,0.38)',
+    },
+  },
+
   // Ein Einkaufszettel ist ein Zettel. Warmes Leinenpapier, Ziegelrot für die
   // Handlung, ein stilles Salbeigrün für alles Zweite.
   leinen: {
@@ -166,6 +211,6 @@ const SKINS: Record<SkinName, Skin> = {
 };
 
 // ↓↓↓ HIER die Variante umstellen ↓↓↓
-export const SKIN: Skin = SKINS.leinen;
+export const SKIN: Skin = SKINS.stoa;
 
 export const ALLE_SKINS = SKINS;

@@ -1,5 +1,5 @@
 // _layout.tsx — die Wurzel: Schriften laden, Theme bereitstellen, Router.
-import { Fraunces_600SemiBold, useFonts } from '@expo-google-fonts/fraunces';
+import { CormorantGaramond_700Bold, useFonts } from '@expo-google-fonts/cormorant-garamond';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import React from 'react';
@@ -14,9 +14,9 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   // Die Display-Schrift trägt jede Überschrift. Bis sie da ist, wird nichts
-  // gezeigt — ein kurzer Sprung von System- auf Fraunces-Schrift wäre genau
-  // die Art Zappeln, die diese Gestaltung vermeidet.
-  const [fontsGeladen] = useFonts({ Fraunces_600SemiBold });
+  // gezeigt — ein kurzer Sprung von der System- auf die Display-Schrift wäre
+  // genau die Art Zappeln, die diese Gestaltung vermeidet.
+  const [fontsGeladen] = useFonts({ CormorantGaramond_700Bold });
   if (!fontsGeladen) return null;
 
   return (
