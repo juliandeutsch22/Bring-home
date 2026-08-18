@@ -37,6 +37,18 @@ export class InMemoryAblage<T extends Datensatz, Neu> implements Ablage<T, Neu> 
   constructor(
     private readonly bauen: (eingabe: Neu, sort: number) => T,
     private readonly ordnen: (a: T, b: T) => number,
+    /**
+     * Kommt Neues nach OBEN oder nach unten?
+     *
+     * Oben für alles, was man nebenbei einwirft (Einkauf, Wünsche, Aufgaben):
+     * der frische Eintrag erscheint direkt unter dem Eingabefeld, wo das Auge
+     * ohnehin ist — er quittiert sich damit selbst. Unten stand er womöglich
+     * außerhalb des Bildes, und man musste glauben, dass er angekommen ist.
+     *
+     * Unten für ZUTATEN: die tippt man in der Reihenfolge des Rezepts, und die
+     * soll erhalten bleiben.
+     */
+    private readonly neueOben = false,
   ) {}
 
   async alle(): Promise<T[]> {
@@ -48,8 +60,13 @@ export class InMemoryAblage<T extends Datensatz, Neu> implements Ablage<T, Neu> 
   }
 
   async anlegen(eingabe: Neu): Promise<T> {
-    const hoechste = this.saetze.reduce((m, s) => Math.max(m, (s as { sort: number }).sort), 0);
-    const satz = this.bauen(eingabe, hoechste + 1);
+    // Neben den vorhandenen setzen, nicht mitten hinein: der Rest behält seine
+    // Reihenfolge, egal wo das Neue landet.
+    const sortierungen = this.saetze.map((s) => (s as { sort: number }).sort);
+    const sort = this.neueOben
+      ? Math.min(0, ...sortierungen) - 1
+      : Math.max(0, ...sortierungen) + 1;
+    const satz = this.bauen(eingabe, sort);
     this.saetze.push(satz);
     return satz;
   }

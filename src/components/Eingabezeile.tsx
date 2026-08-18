@@ -100,7 +100,11 @@ export function Eingabezeile({
         style={[{ flex: 1, minWidth: 0, fontSize: T.md, color: colors.text, paddingVertical: 2, minHeight: 24 }, webNoOutline]}
       />
       {etwasDa && (
-        <PopIn>
+        // `von={0.88}` statt der Vorgabe 0.6: dieser Knopf erscheint beim
+        // ERSTEN Tastendruck, also ständig. Ein Sprung von 60 % ist für 30 px
+        // viel Persönlichkeit an einer Stelle, die man dutzendfach am Tag
+        // auslöst — er soll auftauchen, nicht auftreten.
+        <PopIn von={0.88}>
           <PressableScale
             accessibilityLabel={knopfLabel}
             onPress={onAbschicken}

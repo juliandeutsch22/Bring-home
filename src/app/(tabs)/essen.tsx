@@ -113,7 +113,7 @@ export default function EssenScreen() {
         </Type>
       </Reveal>
 
-      <Reveal delay={60}>
+      <Reveal delay={40}>
         <Eingabezeile
           label="Essenswunsch eintragen"
           platzhalter="Worauf hättest du Lust?"
@@ -124,7 +124,7 @@ export default function EssenScreen() {
         />
       </Reveal>
 
-      <Reveal delay={90}>
+      <Reveal delay={80}>
         {wunschOffen.length === 0 ? (
           <GlassPanel>
             <EmptyState
@@ -393,10 +393,13 @@ export default function EssenScreen() {
               <Type variant="eyebrow" tone="text3">Schon gekocht · {gekocht.length}</Type>
               <DisclosureChevron open={zeigeArchiv} color={colors.text3} />
             </PressableScale>
+            {/* Klappt auf, statt hart ins Bild zu knallen — der Pfeil darüber
+                dreht ja auch. */}
             {zeigeArchiv && (
+              <Faltet>
               <GlassPanel style={{ marginTop: Spacing.xs }}>
                 {gezeigtGekocht.map((w, i) => (
-                  <Listenzeile key={w.id}>
+                  <Listenzeile key={w.id} versatz={i}>
                     {i > 0 && <Seam marginVertical={2} />}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
                       <PressableScale
@@ -435,6 +438,7 @@ export default function EssenScreen() {
                   </Type>
                 )}
               </GlassPanel>
+              </Faltet>
             )}
           </View>
         </Reveal>

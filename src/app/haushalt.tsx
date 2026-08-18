@@ -102,7 +102,7 @@ export default function HaushaltScreen() {
       )}
 
       {id && code ? (
-        <Reveal delay={60}>
+        <Reveal delay={40}>
           <GlassPanel>
             <Type variant="eyebrow" tone="text3">Euer Code</Type>
             <Type variant="heading" style={{ marginTop: Spacing.xs, letterSpacing: 4 }} tabular>{code}</Type>
@@ -126,7 +126,7 @@ export default function HaushaltScreen() {
           </GlassPanel>
         </Reveal>
       ) : (
-        <Reveal delay={60}>
+        <Reveal delay={40}>
           <GlassPanel>
             <Type variant="eyebrow" tone="text3">Zu zweit</Type>
             <Type variant="body" tone="text2" style={{ marginTop: Spacing.xs }}>
@@ -150,7 +150,7 @@ export default function HaushaltScreen() {
         </Reveal>
       )}
 
-      <Reveal delay={90}>
+      <Reveal delay={80}>
         <GlassPanel>
           <Type variant="eyebrow" tone="text3">{id ? 'Zu einer anderen wechseln' : 'Code bekommen?'}</Type>
           {/* Das Feld über die volle Breite, der Knopf DARUNTER — und nicht

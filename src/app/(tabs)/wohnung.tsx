@@ -158,7 +158,7 @@ export default function WohnungScreen() {
         </Type>
       </Reveal>
 
-      <Reveal delay={60}>
+      <Reveal delay={40}>
         <Eingabezeile
           label="Aufgabe hinzufügen"
           platzhalter="Was steht an?"
@@ -169,7 +169,7 @@ export default function WohnungScreen() {
         />
       </Reveal>
 
-      <Reveal delay={90}>
+      <Reveal delay={80}>
         {offen.length === 0 ? (
           <GlassPanel>
             <EmptyState
@@ -202,17 +202,21 @@ export default function WohnungScreen() {
               <Type variant="eyebrow" tone="text3">Warten auf · {wartend.length}</Type>
               <DisclosureChevron open={zeigeWartend} color={colors.text3} />
             </PressableScale>
+            {/* Klappt auf, statt hart ins Bild zu knallen — der Pfeil darüber
+                dreht ja auch. */}
             {zeigeWartend && (
-              <GlassPanel style={{ marginTop: Spacing.xs }}>
-                {wartend.map((a, i) => zeile(a, 'wartend', i > 0))}
-              </GlassPanel>
+              <Faltet>
+                <GlassPanel style={{ marginTop: Spacing.xs }}>
+                  {wartend.map((a, i) => zeile(a, 'wartend', i > 0))}
+                </GlassPanel>
+              </Faltet>
             )}
           </View>
         </Reveal>
       )}
 
       {erledigt.length > 0 && (
-        <Reveal delay={150}>
+        <Reveal delay={120}>
           <View>
             <PressableScale
               accessibilityLabel={zeigeErledigt ? 'Erledigtes ausblenden' : 'Erledigtes anzeigen'}
@@ -226,9 +230,10 @@ export default function WohnungScreen() {
               <DisclosureChevron open={zeigeErledigt} color={colors.text3} />
             </PressableScale>
             {zeigeErledigt && (
+              <Faltet>
               <GlassPanel style={{ marginTop: Spacing.xs }}>
                 {gezeigtErledigt.map((a, i) => (
-                  <Listenzeile key={a.id}>
+                  <Listenzeile key={a.id} versatz={i}>
                     {i > 0 && <Seam marginVertical={2} />}
                     <PressableScale
                       accessibilityLabel={`${a.titel} wieder öffnen`}
@@ -250,6 +255,7 @@ export default function WohnungScreen() {
                   </Type>
                 )}
               </GlassPanel>
+              </Faltet>
             )}
           </View>
         </Reveal>

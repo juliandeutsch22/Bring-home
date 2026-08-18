@@ -2,8 +2,9 @@
 // (statt hart zwischen zwei Icons zu springen). Reduced-Motion → sofort.
 import { ChevronRight } from 'lucide-react-native';
 import React, { useEffect } from 'react';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
+import { Dur, Ease } from '@/theme/motion.tokens';
 import { useReducedMotion } from '@/theme/ThemeProvider';
 
 export function DisclosureChevron({
@@ -22,7 +23,9 @@ export function DisclosureChevron({
 
   useEffect(() => {
     const target = open ? 1 : 0;
-    p.value = reduced ? target : withTiming(target, { duration: 180, easing: Easing.out(Easing.cubic) });
+    // Dauer und Kurve aus den Tokens — vorher standen hier 180 ms und eine
+    // eigene Kubik-Kurve, die es sonst nirgends in der App gibt.
+    p.value = reduced ? target : withTiming(target, { duration: Dur.popover, easing: Ease.out });
   }, [open, reduced, p]);
 
   const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${p.value * 90}deg` }] }));

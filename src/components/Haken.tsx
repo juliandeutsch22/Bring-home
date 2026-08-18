@@ -12,7 +12,7 @@
 import { Check } from 'lucide-react-native';
 import React from 'react';
 import { View } from 'react-native';
-import Animated, { useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated';
+import Animated, { interpolateColor, useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated';
 
 import { Dur, Ease } from '@/theme/motion.tokens';
 import { useColors, useReducedMotion } from '@/theme/ThemeProvider';
@@ -37,10 +37,13 @@ export function Haken({
     return reduced ? ziel : withTiming(ziel, { duration: Dur.press + 60, easing: Ease.out });
   }, [an, reduced]);
 
+  // Die Umrandung wandert MIT, statt bei der Hälfte umzuspringen. Vorher stand
+  // hier `p.value > 0.5 ? accentA : border3` — ein harter Farbwechsel genau in
+  // der Mitte der Animation, also dort, wo das Auge hinschaut. Alles andere
+  // (Füllfarbe, Deckkraft) gehört in den statischen Stil: Konstanten in einem
+  // animierten Stil werden jeden Frame neu berechnet, ohne sich je zu ändern.
   const kasten = useAnimatedStyle(() => ({
-    borderColor: p.value > 0.5 ? colors.accentA : colors.border3,
-    backgroundColor: `rgba(0,0,0,0)`,
-    opacity: 1,
+    borderColor: interpolateColor(p.value, [0, 1], [colors.border3, colors.accentA]),
   }));
   const fuellung = useAnimatedStyle(() => ({ opacity: p.value, transform: [{ scale: 0.7 + p.value * 0.3 }] }));
   const haken = useAnimatedStyle(() => ({ opacity: p.value, transform: [{ scale: 0.5 + p.value * 0.5 }] }));
@@ -53,6 +56,7 @@ export function Haken({
           height: groesse,
           borderRadius: rund ? groesse / 2 : 6,
           borderWidth: 1.5,
+          backgroundColor: 'transparent',
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',

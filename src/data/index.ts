@@ -26,10 +26,11 @@ function neu<T extends Datensatz, Neu>(
   schluessel: string,
   bauen: (eingabe: Neu, sort: number) => T,
   ordnen: (a: T, b: T) => number,
+  neueOben = false,
 ): Ablage<T, Neu> {
   return fluechtig
-    ? new InMemoryAblage<T, Neu>(bauen, ordnen)
-    : new GespeicherteAblage<T, Neu>(bauen, ordnen, schluessel);
+    ? new InMemoryAblage<T, Neu>(bauen, ordnen, neueOben)
+    : new GespeicherteAblage<T, Neu>(bauen, ordnen, schluessel, neueOben);
 }
 
 function baueArtikel(): Ablage<Artikel, NeuerArtikel> {
@@ -45,6 +46,7 @@ function baueArtikel(): Ablage<Artikel, NeuerArtikel> {
       sort,
     }),
     nachSort,
+    true,
   );
 }
 
@@ -60,6 +62,7 @@ function baueWuensche(): Ablage<Wunsch, NeuerWunsch> {
       sort,
     }),
     nachSort,
+    true,
   );
 }
 
@@ -90,6 +93,7 @@ function baueAufgaben(): Ablage<Aufgabe, NeueAufgabe> {
       sort,
     }),
     nachSort,
+    true,
   );
 }
 

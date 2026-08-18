@@ -107,7 +107,7 @@ export default function EinkaufScreen() {
         </Type>
       </Reveal>
 
-      <Reveal delay={60}>
+      <Reveal delay={40}>
         <Eingabezeile
           label="Etwas hinzufügen"
           platzhalter="Was fehlt?"
@@ -118,7 +118,7 @@ export default function EinkaufScreen() {
         />
       </Reveal>
 
-      <Reveal delay={90}>
+      <Reveal delay={80}>
         {offen.length === 0 ? (
           <GlassPanel>
             <EmptyState
@@ -244,10 +244,15 @@ export default function EinkaufScreen() {
                 </PressableScale>
               )}
             </View>
+            {/* Klappt auf, statt hart ins Bild zu knallen — der Pfeil darüber
+                dreht ja auch. `versatz` staffelt außerdem den Abgang, wenn der
+                Wagen geleert wird: sonst verschwinden zehn Zeilen im selben
+                Bild, und das ist ein Schnitt, keine Handlung. */}
             {zeigeWagen && (
+              <Faltet>
               <GlassPanel style={{ marginTop: Spacing.xs }}>
                 {gezeigterWagen.map((a, i) => (
-                  <Listenzeile key={a.id}>
+                  <Listenzeile key={a.id} versatz={i}>
                     {i > 0 && <Seam marginVertical={2} />}
                     <PressableScale
                       accessibilityLabel={`${a.text} zurück auf die Liste`}
@@ -269,6 +274,7 @@ export default function EinkaufScreen() {
                   </Type>
                 )}
               </GlassPanel>
+              </Faltet>
             )}
           </Faltet>
         </Reveal>

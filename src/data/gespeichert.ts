@@ -42,8 +42,9 @@ export class GespeicherteAblage<T extends Datensatz, Neu> extends InMemoryAblage
     bauen: (eingabe: Neu, sort: number) => T,
     ordnen: (a: T, b: T) => number,
     private readonly schluessel: string,
+    neueOben = false,
   ) {
-    super(bauen, ordnen);
+    super(bauen, ordnen, neueOben);
   }
 
   /** Einmal lesen, danach aus dem Speicher bedienen. */
