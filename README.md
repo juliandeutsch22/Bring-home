@@ -16,7 +16,7 @@ für sich. Sie sagt das auf dem Teilen-Bildschirm auch, statt still zu scheitern
 
 1. **SQL-Editor:** die Migrationen der Reihe nach ausführen —
    `migration-01-zutaten.sql`, `migration-02-serverzeit.sql`,
-   `migration-03-code.sql`. (Bei einem frischen Projekt genügt
+   `migration-03-code.sql`, `migration-04-gekocht.sql`. (Bei einem frischen Projekt genügt
    `supabase/schema.sql` allein — dort ist alles schon enthalten. `schema.sql`
    legt die Tabellen mit `create table if not exists` an und sieht deshalb bei
    einem bestehenden Projekt gar nicht mehr hin, ob die Spalten noch stimmen.)

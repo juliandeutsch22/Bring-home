@@ -37,6 +37,7 @@ import {
   useWuensche,
   useWunschAnlegen,
   useWunschLoeschen,
+  useWunschUmschalten,
   useZutatAendern,
   useZutatAnlegen,
   useZutaten,
@@ -44,7 +45,7 @@ import {
   useZutatLoeschen,
 } from '@/data/queries';
 import { hapticSelect, hapticSuccess } from '@/lib/haptics';
-import { fehlendeZutaten, zutatStatus, type ZutatStatus } from '@/lib/listenLogik';
+import { fehlendeZutaten, istKochbar, kuerze, teileWuensche, zutatStatus, type ZutatStatus } from '@/lib/listenLogik';
 import { useColors } from '@/theme/ThemeProvider';
 import { Spacing } from '@/theme/theme.tokens';
 
@@ -67,6 +68,7 @@ export default function EssenScreen() {
   const { data: artikel } = useArtikel();
   const wunschAnlegen = useWunschAnlegen();
   const wunschLoeschen = useWunschLoeschen();
+  const wunschUmschalten = useWunschUmschalten();
   const zutatAnlegen = useZutatAnlegen();
   const zutatAendern = useZutatAendern();
   const zutatLoeschen = useZutatLoeschen();
@@ -77,6 +79,10 @@ export default function EssenScreen() {
   const [zutatEntwurf, setZutatEntwurf] = useState('');
   /** Welche Zutat gerade ihren Editor offen hat. Immer höchstens eine. */
   const [bearbeitet, setBearbeitet] = useState<string | null>(null);
+  const [zeigeArchiv, setZeigeArchiv] = useState(false);
+
+  const { offen: wunschOffen, gekocht } = useMemo(() => teileWuensche(wuensche ?? []), [wuensche]);
+  const [gezeigtGekocht, restGekocht] = useMemo(() => kuerze(gekocht), [gekocht]);
 
   const zutatenJeWunsch = useMemo(() => {
     const m = new Map<string, typeof zutaten>();
@@ -100,7 +106,7 @@ export default function EssenScreen() {
           <Type variant="title" style={{ flex: 1 }}>Essen</Type>
         </View>
         <Type variant="caption" tone="text3" style={{ marginTop: 2 }} tabular>
-          {(wuensche ?? []).length === 1 ? '1 Wunsch' : `${(wuensche ?? []).length} Wünsche`}
+          {wunschOffen.length === 1 ? '1 Wunsch' : `${wunschOffen.length} Wünsche`}
         </Type>
       </Reveal>
 
@@ -116,19 +122,24 @@ export default function EssenScreen() {
       </Reveal>
 
       <Reveal delay={90}>
-        {(wuensche ?? []).length === 0 ? (
+        {wunschOffen.length === 0 ? (
           <GlassPanel>
             <EmptyState
               icon={<UtensilsCrossed size={20} color={colors.accentA} strokeWidth={2} />}
-              title="Noch kein Wunsch"
-              body="Trag ein, worauf du mal wieder Lust hättest. Zutaten kommen dazu, wenn du das Gericht öffnest."
+              title={gekocht.length > 0 ? 'Nichts offen' : 'Noch kein Wunsch'}
+              body={
+                gekocht.length > 0
+                  ? 'Alles gekocht. Was ihr schon einmal gemacht habt, liegt unten im Archiv und lässt sich von dort zurückholen.'
+                  : 'Trag ein, worauf du mal wieder Lust hättest. Zutaten kommen dazu, wenn du das Gericht öffnest.'
+              }
             />
           </GlassPanel>
         ) : (
           <GlassPanel>
-            {(wuensche ?? []).map((w, i) => {
+            {wunschOffen.map((w, i) => {
               const meine = zutatenJeWunsch.get(w.id) ?? [];
               const fehlen = fehlendeZutaten(meine, artikel ?? []);
+              const kochbar = istKochbar(meine, artikel ?? []);
               const offen = offenerWunsch === w.id;
               return (
                 // Nicht animiert: dieser Kasten wächst beim Aufklappen, und
@@ -138,6 +149,22 @@ export default function EssenScreen() {
                   <Listenzeile>
                   {i > 0 && <Seam marginVertical={2} />}
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+                    {/* Der Haken steht da, wo in der Wohnung auch einer steht.
+                        Er ERSETZT das Besteck-Symbol, das hier nur Zierde war
+                        und den Auf-/Zu-Zustand doppelt anzeigte — den sagt der
+                        Pfeil rechts schon. Ein Symbol weniger, eine Handlung
+                        mehr. */}
+                    <PressableScale
+                      accessibilityLabel={`${w.gericht} gekocht`}
+                      onPress={() => {
+                        hapticSuccess();
+                        if (offen) setOffenerWunsch(null);
+                        wunschUmschalten.mutate({ id: w.id, gekocht: false });
+                      }}
+                      style={{ paddingVertical: Spacing.sm + 2 }}
+                    >
+                      <Haken an={false} rund />
+                    </PressableScale>
                     <PressableScale
                       accessibilityLabel={offen ? `${w.gericht} zuklappen` : `${w.gericht} öffnen`}
                       onPress={() => {
@@ -148,18 +175,16 @@ export default function EssenScreen() {
                       pressedScale={0.99}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1, paddingVertical: Spacing.sm + 2 }}
                     >
-                      <UtensilsCrossed size={18} color={offen ? colors.accentA : colors.text3} strokeWidth={2} />
                       <View style={{ flex: 1 }}>
                         <Type variant="body" numberOfLines={1}>{w.gericht}</Type>
                         {w.vonWem && <Type variant="caption" tone="text3" numberOfLines={1}>{`von ${w.vonWem}`}</Type>}
                       </View>
-                      {/* Die Kennzeichnung an der ZUGEKLAPPTEN Zeile: ob das
-                          Gericht kochbar ist, soll man sehen, ohne es zu
-                          öffnen. Ein Haken, der nur er selbst ist — nackt auf
-                          der Platte, die Farbe im Strich. Er steht nur bei
-                          Gerichten, die überhaupt Zutaten haben: eines ohne
-                          ist nicht versorgt, sondern ungeplant. */}
-                      {meine.length > 0 && fehlen.length === 0 && (
+                      {/* Die Kennzeichnung an der ZUGEKLAPPTEN Zeile: kann man
+                          das heute kochen? Nur wenn wirklich ALLES da ist —
+                          im Wagen oder im Vorrat. „Steht auf der Liste" zählt
+                          NICHT: vor dem Herd hat man von einem Eintrag auf
+                          einer Liste nichts. */}
+                      {kochbar && (
                         <View accessibilityLabel={`${w.gericht}: alles da`}>
                           <Check size={15} color={colors.accentA} strokeWidth={2.6} />
                         </View>
@@ -342,6 +367,75 @@ export default function EssenScreen() {
           </GlassPanel>
         )}
       </Reveal>
+
+      {/* Das Archiv. Gekochtes verschwindet nicht, es tritt zurück — ein
+          Gericht, das euch geschmeckt hat, will man wiederhaben, und es samt
+          Zutaten neu zu tippen wäre die Strafe fürs Kochen.
+
+          Eingeklappt, weil es beim Planen nicht im Weg stehen soll, und
+          gekürzt wie die Erledigten in der Wohnung: verstecken ohne es zu
+          sagen wäre ein Funktionsverlust, deshalb steht die Restzahl da. */}
+      {gekocht.length > 0 && (
+        <Reveal delay={120}>
+          <View>
+            <Seam variant="ornament" marginVertical={Spacing.md} />
+            <PressableScale
+              accessibilityLabel={zeigeArchiv ? 'Archiv einklappen' : 'Archiv ansehen'}
+              onPress={() => {
+                hapticSelect();
+                setZeigeArchiv((v) => !v);
+              }}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+            >
+              <Type variant="eyebrow" tone="text3">Schon gekocht · {gekocht.length}</Type>
+              <DisclosureChevron open={zeigeArchiv} color={colors.text3} />
+            </PressableScale>
+            {zeigeArchiv && (
+              <GlassPanel style={{ marginTop: Spacing.xs }}>
+                {gezeigtGekocht.map((w, i) => (
+                  <Listenzeile key={w.id}>
+                    {i > 0 && <Seam marginVertical={2} />}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+                      <PressableScale
+                        accessibilityLabel={`${w.gericht} wieder aufnehmen`}
+                        onPress={() => {
+                          hapticSelect();
+                          wunschUmschalten.mutate({ id: w.id, gekocht: true });
+                        }}
+                        pressedScale={0.99}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1, paddingVertical: Spacing.sm + 2 }}
+                      >
+                        <Haken an rund />
+                        <Type variant="body" tone="text3" style={{ flex: 1 }} numberOfLines={1}>{w.gericht}</Type>
+                        {(zutatenJeWunsch.get(w.id) ?? []).length > 0 && (
+                          <Type variant="caption" tone="text3" tabular>
+                            {`${(zutatenJeWunsch.get(w.id) ?? []).length} Zutaten`}
+                          </Type>
+                        )}
+                      </PressableScale>
+                      <PressableScale
+                        accessibilityLabel={`${w.gericht} endgültig löschen`}
+                        onPress={() => {
+                          hapticSelect();
+                          wunschLoeschen.mutate(w.id);
+                        }}
+                        style={{ padding: Spacing.xs }}
+                      >
+                        <Trash2 size={16} color={colors.text3} strokeWidth={2} />
+                      </PressableScale>
+                    </View>
+                  </Listenzeile>
+                ))}
+                {restGekocht > 0 && (
+                  <Type variant="caption" tone="text3" style={{ paddingTop: Spacing.sm }}>
+                    {`… und ${restGekocht} weitere`}
+                  </Type>
+                )}
+              </GlassPanel>
+            )}
+          </View>
+        </Reveal>
+      )}
     </Screen>
   );
 }

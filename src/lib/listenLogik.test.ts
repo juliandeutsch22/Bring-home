@@ -1,15 +1,17 @@
 // listenLogik.test.ts — die Entscheidungen, an denen die App hängt.
-import type { Artikel, Aufgabe, Zutat } from '@/data/types';
+import type { Artikel, Aufgabe, Wunsch, Zutat } from '@/data/types';
 import { HAUSHALT } from '@/data/types';
 
 import {
   fehlendeZutaten,
   findeArtikel,
+  istKochbar,
   istOffen,
   kuerze,
   normalisiere,
   teileAufgaben,
   teileListe,
+  teileWuensche,
   wartet,
   zutatStatus,
 } from './listenLogik';
@@ -128,6 +130,63 @@ describe('fehlendeZutaten', () => {
   it('gibt nichts zurück, wenn alles schon dasteht', () => {
     const liste = zutaten.map((z, i) => artikel({ id: `a${i}`, text: z.text }));
     expect(fehlendeZutaten(zutaten, liste)).toEqual([]);
+  });
+});
+
+describe('istKochbar', () => {
+  const zutaten = [zutat({ id: 'z1', text: 'Linsen' }), zutat({ id: 'z2', text: 'Spätzle' })];
+  const gekauft = (id: string, text: string) =>
+    artikel({ id, text, erledigtAm: '2026-08-17T11:00:00.000Z' });
+
+  it('zählt Gekauftes als vorhanden — es liegt im Wagen', () => {
+    expect(istKochbar(zutaten, [gekauft('a1', 'Linsen'), gekauft('a2', 'Spätzle')])).toBe(true);
+  });
+
+  it('zählt den Vorrat als vorhanden', () => {
+    const mitVorrat = [zutat({ id: 'z1', text: 'Salz', habenWir: true }), zutat({ id: 'z2', text: 'Öl', habenWir: true })];
+    expect(istKochbar(mitVorrat, [])).toBe(true);
+  });
+
+  it('lässt „auf der Liste" NICHT gelten — das ist geplant, nicht da', () => {
+    // Der Fall, der den Haken vorher zu Unrecht gesetzt hat: vor dem Herd hat
+    // man von einem Eintrag auf einer Einkaufsliste nichts.
+    expect(istKochbar(zutaten, [artikel({ id: 'a1', text: 'Linsen' }), gekauft('a2', 'Spätzle')])).toBe(false);
+  });
+
+  it('reicht eine fehlende Zutat, und es ist nicht kochbar', () => {
+    expect(istKochbar(zutaten, [gekauft('a1', 'Linsen')])).toBe(false);
+  });
+
+  it('hält ein Gericht OHNE Zutaten nicht für kochbar', () => {
+    // Sonst trüge jeder frisch eingetragene Wunsch sofort einen Haken, und das
+    // Zeichen hieße nur noch „hat keine Zutaten".
+    expect(istKochbar([], [])).toBe(false);
+  });
+});
+
+describe('teileWuensche', () => {
+  const wunsch = (p: Partial<Wunsch> & { id: string; gericht: string }): Wunsch => ({
+    notiz: null,
+    vonWem: null,
+    erledigtAm: null,
+    sort: 0,
+    updatedAt: '2026-08-17T10:00:00.000Z',
+    deletedAt: null,
+    ...p,
+  });
+
+  it('trennt Offenes von Gekochtem', () => {
+    const a = wunsch({ id: '1', gericht: 'Carbonara' });
+    const b = wunsch({ id: '2', gericht: 'Linsen', erledigtAm: '2026-08-17T18:00:00.000Z' });
+    const t = teileWuensche([a, b]);
+    expect(t.offen.map((w) => w.id)).toEqual(['1']);
+    expect(t.gekocht.map((w) => w.id)).toEqual(['2']);
+  });
+
+  it('legt zuletzt Gekochtes obenauf — ein Fehlgriff ist sofort greifbar', () => {
+    const frueh = wunsch({ id: '1', gericht: 'A', erledigtAm: '2026-08-16T18:00:00.000Z' });
+    const spaet = wunsch({ id: '2', gericht: 'B', erledigtAm: '2026-08-17T18:00:00.000Z' });
+    expect(teileWuensche([frueh, spaet]).gekocht.map((w) => w.id)).toEqual(['2', '1']);
   });
 });
 

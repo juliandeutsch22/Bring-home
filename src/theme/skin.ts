@@ -62,13 +62,21 @@ const SKINS: Record<SkinName, Skin> = {
       // Verlauf, und laufen die beiden auseinander, sitzt die App in einem
       // Rahmen anderer Farbe.
       bg: '#FFFFFF',
-      // Die Tafeln bleiben warm — sie sind der Stein, nicht der Grund.
-      bg2: '#FBF7EC',
-      bg3: '#EFEBDF',
-      bg4: '#E5E0D1',
-      chip: '#EFEBDE',
+      // Die Steinflächen. Sie sind gegenüber der ersten Fassung ENTWÄRMT
+      // (dieselbe Helligkeit, weniger Gelb), weil cremiges Beige neben reinem
+      // Weiß nach vergilbtem Papier aussieht statt nach Stein.
+      //
+      // `bg2` muss zum Mittelwert von `marble-light.jpg` passen (#F3F2ED): das
+      // Blatt liegt deckend auf der Fläche, und überall, wo es sie nicht ganz
+      // erreicht, schaut sie hervor. Solange beide warm waren, fiel das nicht
+      // auf — mit einer kühlen Textur auf warmem Grund stand plötzlich ein
+      // gelblicher Streifen am Fuß der Platte.
+      bg2: '#F5F4F0',
+      bg3: '#ECEAE5',
+      bg4: '#E2DFD9',
+      chip: '#ECEAE5',
       chipBorder: 'rgba(50,50,40,0.12)',
-      sunk: '#EBE6D6',
+      sunk: '#E8E6E0',
       border: 'rgba(50,50,40,0.12)',
       border2: 'rgba(50,50,40,0.18)',
       border3: 'rgba(50,50,40,0.30)',

@@ -3,7 +3,7 @@
 // Alles hier ist rein: Eingabe rein, Ergebnis raus, kein Zustand. Das ist der
 // Teil, der geprüft werden kann, ohne einen Browser zu starten — und es ist der
 // Teil, an dem die App wirklich hängt.
-import type { Artikel, Aufgabe, Zutat } from '@/data/types';
+import type { Artikel, Aufgabe, Wunsch, Zutat } from '@/data/types';
 
 /** Im Wagen oder noch zu holen? */
 export function istImWagen(a: Artikel): boolean {
@@ -77,6 +77,44 @@ export function zutatStatus(z: Zutat, artikel: Artikel[]): ZutatStatus {
  */
 export function fehlendeZutaten(zutaten: Zutat[], artikel: Artikel[]): Zutat[] {
   return zutaten.filter((z) => zutatStatus(z, artikel) === 'fehlt');
+}
+
+/**
+ * Kann man das Gericht HEUTE kochen?
+ *
+ * Der Unterschied, an dem es hängt: „steht auf der Einkaufsliste" heißt
+ * geplant, nicht vorhanden. Wer vor dem Herd steht, hat von einem Eintrag auf
+ * einer Liste nichts. Wirklich da ist nur, was im Wagen liegt (gekauft) oder
+ * was ihr immer dahabt.
+ *
+ * Ein Gericht ohne Zutaten ist NICHT kochbar, sondern ungeplant — sonst wäre
+ * jeder frisch eingetragene Wunsch sofort mit einem Haken versehen, und das
+ * Zeichen hieße nur noch „hat keine Zutaten".
+ */
+export function istKochbar(zutaten: Zutat[], artikel: Artikel[]): boolean {
+  if (zutaten.length === 0) return false;
+  return zutaten.every((z) => {
+    const s = zutatStatus(z, artikel);
+    return s === 'habenWir' || s === 'imWagen';
+  });
+}
+
+/** Ist der Wunsch schon gekocht? */
+export function istGekocht(w: Wunsch): boolean {
+  return w.erledigtAm !== null;
+}
+
+/**
+ * Die zwei Hälften der Wunschliste. Gekochtes zuletzt Abgehaktes zuerst — wer
+ * etwas versehentlich abhakt, findet es oben.
+ */
+export function teileWuensche(wuensche: Wunsch[]): { offen: Wunsch[]; gekocht: Wunsch[] } {
+  return {
+    offen: wuensche.filter((w) => !istGekocht(w)),
+    gekocht: wuensche
+      .filter(istGekocht)
+      .sort((a, b) => (a.erledigtAm! < b.erledigtAm! ? 1 : -1)),
+  };
 }
 
 /** Wartet die Aufgabe auf jemand anderen? */

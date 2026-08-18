@@ -35,6 +35,12 @@ export type Wunsch = Sync & {
   gericht: string;
   notiz: string | null;
   vonWem: string | null;
+  /**
+   * Gekocht. Wandert damit ins Archiv, statt zu verschwinden — ein Gericht,
+   * das euch geschmeckt hat, will man wiederhaben, und es samt Zutaten neu zu
+   * tippen wäre die Strafe fürs Kochen.
+   */
+  erledigtAm: string | null; // ISO
   sort: number;
 };
 

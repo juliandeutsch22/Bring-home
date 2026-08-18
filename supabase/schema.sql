@@ -62,6 +62,10 @@ create table if not exists wuensche (
   gericht text not null,
   notiz text,
   von_wem text,
+  -- Gekocht. Ein Zeitstempel, kein Wahrheitswert: „wann" beantwortet auch „ob",
+  -- umgekehrt nicht — und daran hängt die Reihenfolge im Archiv. Nicht zu
+  -- verwechseln mit `deleted_at`; gekocht heißt erledigt, nicht fort.
+  erledigt_am timestamptz,
   sort double precision not null default 0,
   updated_at timestamptz not null,
   server_at timestamptz not null default now(),

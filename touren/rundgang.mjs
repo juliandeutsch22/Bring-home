@@ -183,9 +183,18 @@ t = await text();
 pruef('einzeln übernehmen genügt', t.includes('Alles beisammen'), t.slice(0, 800));
 
 // Die Kennzeichnung an der ZUGEKLAPPTEN Zeile: kochbar oder nicht, ohne das
-// Gericht zu öffnen. Das ist der eigentliche Nutzen — offen sieht man es ohnehin.
+// Gericht zu öffnen. „Auf der Liste" reicht dafür ausdrücklich NICHT — an
+// dieser Stelle stehen alle drei Zutaten offen auf der Einkaufsliste, gekauft
+// ist keine.
 await tippe('Linsen mit Spätzle zuklappen');
-pruef('das versorgte Gericht trägt sein Zeichen', (await zeilen('Linsen mit Spätzle: alles da')) === 1);
+pruef('geplant ist noch nicht kochbar', (await zeilen('Linsen mit Spätzle: alles da')) === 0);
+
+// Jetzt wirklich einkaufen: alle drei in den Wagen.
+await tab('Einkauf');
+for (const x of ['Linsen', 'Spätzle', 'Brot']) await tippe(`${x} abhaken`);
+await tab('Essen');
+pruef('gekauft heißt kochbar', (await zeilen('Linsen mit Spätzle: alles da')) === 1);
+// Wieder aufklappen — die nächsten Schritte arbeiten an den Zutaten-Zeilen.
 await tippe('Linsen mit Spätzle öffnen');
 
 await tippe('Zutat Spätzle bearbeiten');
@@ -198,12 +207,31 @@ pruef('eine gestrichene Zutat ist weg', t.includes('2 Zutaten'), t.slice(0, 800)
 
 console.log('\n6) Einkauf: löschen liegt hinter dem Stift');
 await tab('Einkauf');
-pruef('das einzeln übernommene Brot steht auf der Liste', (await zeilen('Brot abhaken')) === 1);
+// „Brot" wurde eben in den Wagen gelegt, steht also nicht mehr offen da —
+// wohl aber im Wagen, und der Wagen LÖSCHT nicht.
+pruef('das einzeln übernommene Brot liegt im Wagen', (await zeilen('Brot abhaken')) === 0);
+pruef('und ist dort auch zu sehen', enthaelt(await text(), 'Im Wagen · 3'), (await text()).slice(0, 400));
 await tippe('Vollkornbrot bearbeiten');
 await tippe('Vollkornbrot entfernen');
 pruef('und nach dem Löschen ist die Zeile fort', (await zeilen('Vollkornbrot abhaken')) === 0);
 
-console.log('\n7) Der Haptik-Schalter hat genau die Gestalt, die gemessen wurde');
+console.log('\n7) Essen: gekocht ist nicht gelöscht');
+await tab('Essen');
+await tippe('Linsen mit Spätzle gekocht');
+t = await text();
+pruef('das Gericht verlässt die offene Liste', !t.includes('1 Wunsch'), t.slice(0, 400));
+pruef('und liegt im Archiv', enthaelt(t, 'Schon gekocht · 1'), t.slice(0, 600));
+
+await tippe('Archiv ansehen');
+await tippe('Linsen mit Spätzle wieder aufnehmen');
+t = await text();
+pruef('von dort kommt es zurück', t.includes('1 Wunsch'), t.slice(0, 400));
+// Der eigentliche Punkt des Archivs: die Zutaten überleben. Sie neu zu tippen
+// wäre die Strafe fürs Kochen. (Zwei, nicht drei — „Spätzle" wurde oben
+// gestrichen.)
+pruef('samt seiner Zutaten', t.includes('2 Zutaten'), t.slice(0, 600));
+
+console.log('\n8) Der Haptik-Schalter hat genau die Gestalt, die gemessen wurde');
 // Nicht ob es TICKT — das kann kein Browser auf einem Schreibtisch sagen. Wohl
 // aber, ob der Aufbau noch der ist, der auf einem iPhone 14 Pro nachweislich
 // funktioniert hat. Zwei Fehler hatten ihn schon einmal still lahmgelegt:
@@ -218,7 +246,10 @@ await p.evaluate(() => {
   delete navigator.vibrate;
   Object.defineProperty(navigator, 'vibrate', { value: undefined, configurable: true });
 });
-await tippe('Brot abhaken');
+// Irgendeine Handlung, die Haptik auslöst — ein frischer Punkt, frisch abgehakt.
+await tab('Einkauf');
+await schreibe('Etwas hinzufügen', 'Zitronen');
+await tippe('Zitronen abhaken');
 
 const schalter = await p.evaluate(() => {
   const l = document.querySelector('label[for="bring-home-haptik"]');

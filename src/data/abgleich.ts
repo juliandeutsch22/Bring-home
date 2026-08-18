@@ -109,12 +109,19 @@ const artikelSorte: Sorte<Artikel> = {
 const wunschSorte: Sorte<Wunsch> = {
   tabelle: 'wuensche',
   ablage: () => holeWuensche() as Ablage<Wunsch, never>,
-  hin: (s, h) => ({ ...rumpfHin(s, h), gericht: s.gericht, notiz: s.notiz, von_wem: s.vonWem }),
+  hin: (s, h) => ({
+    ...rumpfHin(s, h),
+    gericht: s.gericht,
+    notiz: s.notiz,
+    von_wem: s.vonWem,
+    erledigt_am: s.erledigtAm,
+  }),
   her: (r) => ({
     ...rumpfHer(r),
     gericht: String(r.gericht ?? ''),
     notiz: text(r.notiz),
     vonWem: text(r.von_wem),
+    erledigtAm: r.erledigt_am == null ? null : iso(r.erledigt_am),
   }),
 };
 

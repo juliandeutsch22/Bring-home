@@ -104,6 +104,19 @@ export function useWunschAnlegen() {
   });
 }
 
+/**
+ * Gekocht — oder doch wieder hervorgeholt. Ein Aufruf, zwei Richtungen, wie
+ * bei Artikeln und Aufgaben auch.
+ */
+export function useWunschUmschalten() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, gekocht }: { id: string; gekocht: boolean }) =>
+      holeWuensche().aendern(id, { erledigtAm: gekocht ? null : new Date().toISOString() }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.wuensche }),
+  });
+}
+
 export function useWunschLoeschen() {
   const qc = useQueryClient();
   return useMutation({

@@ -56,6 +56,7 @@ function baueWuensche(): Ablage<Wunsch, NeuerWunsch> {
       gericht: e.gericht.trim(),
       notiz: e.notiz?.trim() || null,
       vonWem: e.vonWem ?? null,
+      erledigtAm: null,
       sort,
     }),
     nachSort,

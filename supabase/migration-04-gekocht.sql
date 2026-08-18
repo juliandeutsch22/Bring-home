@@ -1,0 +1,16 @@
+-- migration-04-gekocht.sql — im SQL-Editor ausführen, nach Migration 03.
+-- Ein zweiter Lauf schadet nicht.
+--
+-- Neu: ein Essenswunsch kann abgehakt werden. Er verschwindet dann nicht,
+-- sondern tritt ins Archiv zurück und lässt sich von dort zurückholen — samt
+-- seiner Zutaten. Ein Gericht, das euch geschmeckt hat, will man wiederhaben,
+-- und es neu zu tippen wäre die Strafe fürs Kochen.
+--
+-- Bewusst dieselbe Form wie bei `artikel` und `aufgaben`: ein Zeitstempel,
+-- nicht ein Wahrheitswert. „Wann" beantwortet auch „ob", umgekehrt nicht — und
+-- an der Zeit hängt die Reihenfolge im Archiv (zuletzt Gekochtes obenauf, damit
+-- ein Fehlgriff sofort greifbar ist).
+--
+-- NICHT zu verwechseln mit `deleted_at`: das ist der Grabstein für wirklich
+-- Gelöschtes. Gekocht heißt erledigt, nicht fort.
+alter table wuensche add column if not exists erledigt_am timestamptz;
