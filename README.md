@@ -64,28 +64,44 @@ ausführlich in `supabase/migration-02-serverzeit.sql`.
 | 0 ✅ | Grundstein: Toolchain, Design-System, eine Hülle, Verifikation |
 | 1 ✅ | Die drei Listen, lokal benutzbar |
 | 2 ✅ | Bleibt: Speicher, Manifest, Icons, Service Worker, offline |
-| 2.1 ✅ | Bewegung; Haptik auf Android (auf iOS unmöglich, siehe unten) |
+| 2.1 ✅ | Bewegung und Haptik — auf Android und, über einen Kunstgriff, auf iOS |
 | 3 ✅ | Teilen: Supabase, Beitritt per Code, Sync |
 | 4 ✅ | Live: Änderungen erscheinen, während beide offen haben |
 | 5 | Feinschliff: Mengen, Vorschläge, Undo, mehrere Listen |
 | 6 | Optional: Web-Push; native App für ein Gerät |
 
-## Was nicht geht, und warum nicht mehr daran gearbeitet wird
+## Haptik auf iOS — es geht, aber nur genau so
 
-**Haptik auf iOS im Browser.** Nicht „schwierig", sondern nicht vorhanden.
-Safari kennt `navigator.vibrate` nicht, und der viel zitierte Kunstgriff mit
-dem nativen Schalter-Bedienelement (`<input type="checkbox" switch>`, seit
-iOS 17.4) trägt ebenfalls nicht: am 17.08.2026 auf dem echten Gerät gemessen —
-vier Varianten nebeneinander, darunter ein sichtbarer Schalter direkt unter dem
-Finger — hat keine einzige getickt.
+Safari kennt `navigator.vibrate` nicht. Es bleibt ein Kunstgriff, und der
+funktioniert: seit iOS 17.4 löst das native Schalter-Bedienelement
+(`<input type="checkbox" switch>`) beim Umlegen einen Tick der Taptic Engine
+aus. Ein verstecktes Exemplar, per Skript angeklickt, tickt mit. Auf einem
+iPhone 14 Pro nachgemessen.
 
-Auf iOS trägt deshalb der sichtbare Kanal die Bestätigung allein, wofür er
-ohnehin gebaut ist: das Häkchen federt, die Zeile darunter rutscht nach. Haptik
-war hier nie das Signal, nur seine Verstärkung.
+Er hängt an zwei Bedingungen, und beide waren hier schon einmal verletzt —
+mit dem Ergebnis, dass gar nichts passierte und ich daraus fälschlich schloss,
+es ginge grundsätzlich nicht:
 
-Echte Haptik gäbe es allein mit einer nativen App — also mit genau dem
-Apple-Developer-Account, um den herum diese App entworfen wurde. Das ist eine
-Produktentscheidung, keine offene Aufgabe.
+1. **Ausgelöst wird mit `label.click()`** auf dem umschließenden Etikett.
+   `element.checked = !element.checked` ist eine Eigenschaftsänderung und kein
+   Klick — davon passiert nichts.
+2. **Der Schalter bekommt KEINE eigene Gestaltung.** `all: initial`,
+   `appearance: auto`, sonst nichts. Sobald man ihm Maße gibt, hört Safari auf,
+   ihn nativ zu zeichnen, und ohne natives Bedienelement kein Tick. Genau
+   dieser Fehler steckte auch in der ersten Testseite und hat die Messung
+   wertlos gemacht.
+
+`display: none` auf Etikett und Schalter ist dagegen unschädlich und geprüft.
+Der Aufbau steht in `src/lib/haptics.ts`; `touren/rundgang.mjs` prüft seine
+Gestalt mit (Abschnitt 7) und schaltet dafür `navigator.vibrate` ab, weil
+Chromium sie kennt und der iOS-Zweig sonst nie liefe.
+
+**Wer daran etwas ändert, muss auf einem echten Gerät nachmessen.** Das ist ein
+undokumentierter Nebeneffekt, kein API — nachdenken genügt hier nicht.
+
+Kein npm-Paket dafür: `web-haptics` macht genau dies (nachgelesen in
+`dist/chunk-4NSAIXAB.mjs`), und eine Abhängigkeit für dreißig Zeilen, die wir
+inzwischen verstehen, wäre der schlechtere Tausch.
 
 ## Die Haut wechseln
 

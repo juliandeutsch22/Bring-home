@@ -1,50 +1,104 @@
 // haptics.ts — taktiles Feedback, so weit die Plattform es hergibt.
 //
-// EHRLICHE BESTANDSAUFNAHME, weil hier viel Halbwissen kursiert:
+// EHRLICHE BESTANDSAUFNAHME:
 //
 //  · Nativ (iOS/Android als App): `expo-haptics`, volle Taptic Engine.
 //  · Android im Browser/als PWA: `navigator.vibrate()` — ein echter, wenn auch
 //    grober Motor. Millisekunden statt Nuancen.
-//  · iOS im Browser/als PWA: NICHTS. Am 17.08.2026 auf dem Gerät durchgemessen,
-//    nicht vermutet — mit einer Testseite, die vier Varianten nebeneinander
-//    zum Antippen anbot. Keine einzige hat getickt.
+//  · iOS im Browser/als PWA: die Vibrations-API gibt es NICHT. Es bleibt ein
+//    Kunstgriff, und der funktioniert: seit iOS 17.4 löst das native
+//    Schalter-Bedienelement (`<input type="checkbox" switch>`) beim Umlegen
+//    einen Tick der Taptic Engine aus. Ein verstecktes Exemplar, per Skript
+//    angeklickt, tickt mit.
 //
-// Damit ist auch der Kunstgriff erledigt, der hier einmal stand, und weil er
-// zäh ist, hier sein Nachruf: seit iOS 17.4 löst das native
-// Schalter-Bedienelement (`<input type="checkbox" switch>`) beim Umlegen einen
-// Tick aus, heißt es. Daraus wurde die Idee, einen unsichtbaren Schalter per
-// Skript umzulegen. Das konnte schon im Ansatz nichts werden — der Tick hängt
-// daran, dass ein MENSCH ein sichtbares Bedienelement berührt, und
-// `element.checked = !…` ist eine Eigenschaftsänderung, kein Bedienen. Aber
-// auch die saubere Fassung, ein echter sichtbarer Schalter unter dem Finger,
-// blieb im Test stumm. Es gibt hier nichts zu retten.
+// ZUR VORGESCHICHTE, weil sie eine Warnung enthält: hier stand dieser
+// Kunstgriff schon einmal, kaputt. Zwei Fehler auf einmal —
 //
-// WER ALSO IN EINEM JAHR HIERHER KOMMT: bitte nicht erneut anfangen. Wenn, dann
-// mit einer Messung auf einem echten Gerät, nicht mit einem Blogeintrag.
+//   1. Ausgelöst wurde mit `element.checked = !element.checked`. Das ist eine
+//      Eigenschaftsänderung und kein Klick; es passiert schlicht nichts.
+//      Nötig ist `label.click()` auf dem umschließenden Etikett.
+//   2. Der Schalter trug eigenes CSS (1×1 Pixel, `opacity: 0`). Sobald man ihm
+//      Maße gibt, hört Safari auf, ihn NATIV zu zeichnen — und ohne natives
+//      Bedienelement kein Tick. Er braucht `all: initial` und
+//      `appearance: auto`, also ausdrücklich KEINE eigene Gestaltung.
 //
-// Bleibt: auf iOS trägt der SICHTBARE Kanal die Bestätigung allein — das
-// Häkchen federt, die Zeile rutscht nach. Genau deshalb war Haptik hier von
-// Anfang an nie tragend; sie bestätigt, was man ohnehin sieht. Fällt sie aus,
-// fehlt nichts. Echte Haptik auf iOS gäbe es nur mit einer nativen App, und
-// die wurde für diese App bewusst nicht gewählt.
+// Der zweite Fehler steckte danach auch in meiner Testseite, weshalb die erste
+// Messung „geht nicht" ergab und ich daraus fälschlich „geht grundsätzlich
+// nicht" gemacht habe. Erst der zweite, ungestylte Test auf einem iPhone 14 Pro
+// hat es gezeigt: es tickt.
+//
+// MERKSATZ: Der Aufbau unten ist genau der, der gemessen wurde. Wer daran etwas
+// ändert — Maße, Sichtbarkeit, `aria-hidden`, `tabindex` —, ändert an einem
+// Nebeneffekt, den niemand dokumentiert hat, und muss auf einem echten Gerät
+// nachmessen. Nicht nachdenken, nachmessen.
+//
+// Kein npm-Paket dafür: `web-haptics` macht genau dies (nachgelesen in
+// `dist/chunk-4NSAIXAB.mjs`), und eine Abhängigkeit für dreißig Zeilen, die wir
+// inzwischen verstehen, wäre der schlechtere Tausch.
 import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 const nativ = Platform.OS === 'ios' || Platform.OS === 'android';
 const web = Platform.OS === 'web';
 
+/** Das Etikett, auf das geklickt wird. Eins für die ganze App, nicht eins pro Tipp. */
+let etikett: HTMLLabelElement | null = null;
+let gebaut = false;
+
 /**
- * Im Browser gibt es genau einen Weg, und wo es ihn nicht gibt, passiert
- * nichts. Kein Ersatz, kein Kunstgriff — ein stiller Fehlschlag ist besser als
- * Code, der Arbeit vortäuscht.
+ * Baut den versteckten Schalter — beim ersten Bedarf, nicht beim Import.
+ *
+ * `display: none` auf beiden Elementen ist Absicht und geprüft: der Tick kommt
+ * trotzdem, und ein unsichtbares Element nimmt weder Platz noch Tastaturfokus
+ * und steht auch nicht im Vorleseprogramm.
+ */
+function baueSchalter(): HTMLLabelElement | null {
+  if (gebaut) return etikett;
+  gebaut = true;
+  if (typeof document === 'undefined') return null;
+  try {
+    const kennung = 'bring-home-haptik';
+    const l = document.createElement('label');
+    l.setAttribute('for', kennung);
+    l.style.display = 'none';
+
+    const s = document.createElement('input');
+    s.type = 'checkbox';
+    // `switch` ist ein Attribut, kein Typ — TypeScript kennt es nicht.
+    s.setAttribute('switch', '');
+    s.id = kennung;
+    // Die zwei Zeilen, an denen alles hängt: keine eigene Gestaltung, sondern
+    // ausdrücklich das native Bedienelement.
+    s.style.all = 'initial';
+    s.style.appearance = 'auto';
+    s.style.display = 'none';
+
+    l.appendChild(s);
+    document.body.appendChild(l);
+    etikett = l;
+    return l;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Ein Tick. Auf Android der echte Motor, auf iOS der Schalter.
+ *
+ * Die Vibrations-API kommt zuerst: wo es sie gibt, ist sie die richtige Antwort
+ * und kennt sogar Dauern. Der Schalter ist der Rückfall, und er kann genau eins
+ * — ticken. Stärke und Länge sind nicht einstellbar.
  */
 function webTick(ms: number): void {
-  if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
-  try {
-    navigator.vibrate(ms);
-  } catch {
-    /* Ein verweigerter Tick ist kein Grund, irgendetwas anzuhalten. */
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    try {
+      navigator.vibrate(ms);
+      return;
+    } catch {
+      /* fällt durch auf den Schalter */
+    }
   }
+  baueSchalter()?.click();
 }
 
 /** Leichter Tap — für Knöpfe und Auswahl. */
@@ -65,11 +119,24 @@ export function hapticSelect(): void {
   if (web) webTick(8);
 }
 
-/** Etwas ist entstanden — angelegt, übernommen, gesichert. */
+/**
+ * Etwas ist entstanden — angelegt, übernommen, gesichert.
+ *
+ * Zwei Ticks statt einem: „fertig" soll sich anders anfühlen als „gemerkt".
+ * Weil der Schalter keine Stärke kennt, ist der Abstand das einzige Mittel,
+ * das bleibt — kurz genug, dass es als EIN Ereignis durchgeht, lang genug, dass
+ * man zwei zählt.
+ */
 export function hapticSuccess(): void {
   if (nativ) {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     return;
   }
-  if (web) webTick(14);
+  if (!web) return;
+  webTick(14);
+  if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') {
+    // Nur auf dem Schalter-Weg nachlegen. Wo `vibrate` läuft, trägt schon die
+    // Dauer die Aussage, und ein zweiter Stoß wäre bloß Lärm.
+    setTimeout(() => baueSchalter()?.click(), 90);
+  }
 }

@@ -197,6 +197,44 @@ await tippe('Vollkornbrot bearbeiten');
 await tippe('Vollkornbrot entfernen');
 pruef('und nach dem Löschen ist die Zeile fort', (await zeilen('Vollkornbrot abhaken')) === 0);
 
+console.log('\n7) Der Haptik-Schalter hat genau die Gestalt, die gemessen wurde');
+// Nicht ob es TICKT — das kann kein Browser auf einem Schreibtisch sagen. Wohl
+// aber, ob der Aufbau noch der ist, der auf einem iPhone 14 Pro nachweislich
+// funktioniert hat. Zwei Fehler hatten ihn schon einmal still lahmgelegt:
+// ein Klick, der keiner war, und eigenes CSS, das die native Darstellung nahm.
+//
+// Dafür muss der iOS-Zweig erst erreichbar werden: Chromium KENNT
+// `navigator.vibrate`, und solange es die gibt, ist sie die richtige Antwort
+// und der Schalter kommt gar nicht vor. Also weg damit — so sieht die Seite
+// aus, wie Safari sie sieht.
+await p.evaluate(() => {
+  // @ts-ignore — genau das ist der Punkt: auf iOS gibt es sie nicht.
+  delete navigator.vibrate;
+  Object.defineProperty(navigator, 'vibrate', { value: undefined, configurable: true });
+});
+await tippe('Brot abhaken');
+
+const schalter = await p.evaluate(() => {
+  const l = document.querySelector('label[for="bring-home-haptik"]');
+  const s = document.getElementById('bring-home-haptik');
+  if (!l || !s) return null;
+  return {
+    imEtikett: s.parentElement === l,
+    istSchalter: s.getAttribute('switch') !== null && s.getAttribute('type') === 'checkbox',
+    // `all: initial` setzt appearance auf den Ausgangswert zurück; entscheidend
+    // ist, dass NICHTS davon „none" ist — das wäre die gestylte Fassung.
+    nativ: s.style.appearance === 'auto',
+    versteckt: s.style.display === 'none' && l.style.display === 'none',
+  };
+});
+pruef('der Schalter ist überhaupt da', schalter !== null, 'kein Element — wurde webTick je aufgerufen?');
+if (schalter) {
+  pruef('er sitzt in seinem Etikett', schalter.imEtikett);
+  pruef('er ist ein Schalter, keine Checkbox', schalter.istSchalter);
+  pruef('er wird nativ gezeichnet, nicht von uns', schalter.nativ, String(schalter.nativ));
+  pruef('und ist unsichtbar', schalter.versteckt);
+}
+
 console.log(`\nSeitenfehler: ${fehler.length === 0 ? 'keine' : fehler.join(' | ')}`);
 console.log(`${ok} ok, ${bad} fehlgeschlagen`);
 await b.close();
