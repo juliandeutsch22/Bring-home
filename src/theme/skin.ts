@@ -55,7 +55,14 @@ const SKINS: Record<SkinName, Skin> = {
     hell: {
       a: '#2B5FA6',
       b: '#7E8C5C',
-      bg: '#F4F1E8',
+      // `bg` ist der GRUND, auf dem alles liegt — weiß. Er steht auch im Kopf
+      // der ausgelieferten Seite (`scripts/pwa-huelle.mjs` liest ihn hier) und
+      // färbt damit die Fläche hinter der App und die iOS-Statusleiste. Wer ihn
+      // ändert, muss `Backdrop.tsx` mitziehen: dort steht derselbe Grund als
+      // Verlauf, und laufen die beiden auseinander, sitzt die App in einem
+      // Rahmen anderer Farbe.
+      bg: '#FFFFFF',
+      // Die Tafeln bleiben warm — sie sind der Stein, nicht der Grund.
       bg2: '#FBF7EC',
       bg3: '#EFEBDF',
       bg4: '#E5E0D1',

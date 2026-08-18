@@ -59,6 +59,12 @@ export function Glass({ variant = 'card', radius, tint, style, contentStyle, chi
   // (Für die EINE Zeile ausprobiert und wieder verworfen — siehe UEBERGABE.)
   const showChisel = !tint && variant !== 'pill';
   const inset = Math.min(borderRadius * 0.7, 16);
+  // Wie dick die behauene Kante ist — feiner als früher (3 bzw. 2 px). Auf dem
+  // WEISSEN Grund tritt der Lichtgrat oben stärker hervor als auf Creme, und
+  // was dort eine Fase war, las sich hier als Leiste. Weniger Material,
+  // dieselbe Aussage: die Platte soll ihre Dicke andeuten, nicht vorführen.
+  const GRAT = 2;
+  const FASE = 1.5;
 
   return (
     <View
@@ -90,7 +96,7 @@ export function Glass({ variant = 'card', radius, tint, style, contentStyle, chi
               top: 0,
               left: inset,
               right: inset,
-              height: 3,
+              height: GRAT,
               backgroundColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,1)',
             }}
           />
@@ -101,7 +107,7 @@ export function Glass({ variant = 'card', radius, tint, style, contentStyle, chi
               bottom: 0,
               left: inset,
               right: inset,
-              height: 3,
+              height: GRAT,
               backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(60,55,40,0.16)',
             }}
           />
@@ -115,7 +121,7 @@ export function Glass({ variant = 'card', radius, tint, style, contentStyle, chi
               top: inset,
               bottom: inset,
               left: 0,
-              width: 2,
+              width: FASE,
               backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.55)',
             }}
           />
@@ -126,7 +132,7 @@ export function Glass({ variant = 'card', radius, tint, style, contentStyle, chi
               top: inset,
               bottom: inset,
               right: 0,
-              width: 2,
+              width: FASE,
               backgroundColor: isDark ? 'rgba(0,0,0,0.35)' : 'rgba(60,55,40,0.07)',
             }}
           />

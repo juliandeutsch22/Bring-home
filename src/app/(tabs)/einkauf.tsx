@@ -14,15 +14,16 @@
 //    Übrige (umbenennen, Menge, löschen) liegt eine Ebene tiefer. Vorher war
 //    das Löschen ein einzelner Tipp direkt neben dem Abhaken; ein Danebengreifen
 //    war damit unwiderruflich.
-import { Link2, Pencil, Plus, ShoppingBasket } from 'lucide-react-native';
+import { Link2, Pencil, ShoppingBasket } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { View } from 'react-native';
 
 import { DisclosureChevron } from '@/components/DisclosureChevron';
+import { Eingabezeile } from '@/components/Eingabezeile';
 import { Feld } from '@/components/Feld';
 import { Haken } from '@/components/Haken';
-import { Listenzeile, Rutscht } from '@/components/Listenzeile';
+import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PressableScale } from '@/components/PressableScale';
 import { Reveal } from '@/components/Reveal';
@@ -41,9 +42,8 @@ import {
 import { useHaushalt } from '@/data/haushalt';
 import { hapticSelect, hapticSuccess } from '@/lib/haptics';
 import { findeArtikel, kuerze, teileListe } from '@/lib/listenLogik';
-import { webNoOutline } from '@/theme/layout';
 import { useColors } from '@/theme/ThemeProvider';
-import { R, Spacing, T } from '@/theme/theme.tokens';
+import { Spacing } from '@/theme/theme.tokens';
 
 export default function EinkaufScreen() {
   const colors = useColors();
@@ -105,39 +105,14 @@ export default function EinkaufScreen() {
       </Reveal>
 
       <Reveal delay={60}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.sm,
-            borderRadius: R.lg,
-            borderWidth: 1,
-            borderColor: colors.chipBorder,
-            backgroundColor: colors.sunk,
-            paddingHorizontal: Spacing.md,
-          }}
-        >
-          <TextInput
-            accessibilityLabel="Etwas hinzufügen"
-            value={entwurf}
-            onChangeText={setEntwurf}
-            onSubmitEditing={hinzufuegen}
-            placeholder="Was fehlt?"
-            placeholderTextColor={colors.text3}
-            returnKeyType="done"
-            style={[
-              { flex: 1, fontSize: T.md, color: colors.text, paddingVertical: Spacing.sm + 4, minHeight: 24 },
-              webNoOutline,
-            ]}
-          />
-          <PressableScale
-            accessibilityLabel="Hinzufügen"
-            onPress={hinzufuegen}
-            style={{ padding: Spacing.xs, opacity: entwurf.trim() ? 1 : 0.35 }}
-          >
-            <Plus size={20} color={colors.accentA} strokeWidth={2.4} />
-          </PressableScale>
-        </View>
+        <Eingabezeile
+          label="Etwas hinzufügen"
+          platzhalter="Was fehlt?"
+          wert={entwurf}
+          onWert={setEntwurf}
+          onAbschicken={hinzufuegen}
+          knopfLabel="Hinzufügen"
+        />
       </Reveal>
 
       <Reveal delay={90}>
@@ -154,7 +129,11 @@ export default function EinkaufScreen() {
             {offen.map((a, i) => {
               const auf = bearbeitet === a.id;
               return (
-              <Listenzeile key={a.id}>
+              // Der äußere Kasten ist NICHT animiert: er ist das Element, das
+              // beim Aufklappen wächst, und eine Layout-Animation würde seinen
+              // Inhalt dabei stauchen (siehe `Listenzeile.tsx`).
+              <View key={a.id}>
+                <Listenzeile>
                 {i > 0 && <Seam marginVertical={2} />}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
                   <PressableScale
@@ -185,9 +164,10 @@ export default function EinkaufScreen() {
                     <Pencil size={16} color={auf ? colors.accentA : colors.text3} strokeWidth={2} />
                   </PressableScale>
                 </View>
+                </Listenzeile>
 
                 {auf && (
-                  <Rutscht>
+                  <Faltet>
                     <View style={{ gap: Spacing.sm, paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
                       <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                         {/* Der Name darf nicht leer werden — ein namenloser
@@ -221,9 +201,9 @@ export default function EinkaufScreen() {
                         <Type variant="label" tone="accentB">Von der Liste nehmen</Type>
                       </PressableScale>
                     </View>
-                  </Rutscht>
+                  </Faltet>
                 )}
-              </Listenzeile>
+              </View>
               );
             })}
           </GlassPanel>
@@ -232,7 +212,7 @@ export default function EinkaufScreen() {
 
       {imWagen.length > 0 && (
         <Reveal delay={120}>
-          <Rutscht>
+          <Faltet>
             <Seam variant="ornament" marginVertical={Spacing.md} />
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <PressableScale
@@ -285,7 +265,7 @@ export default function EinkaufScreen() {
                 )}
               </GlassPanel>
             )}
-          </Rutscht>
+          </Faltet>
         </Reveal>
       )}
     </Screen>

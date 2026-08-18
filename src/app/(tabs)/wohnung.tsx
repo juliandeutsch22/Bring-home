@@ -10,14 +10,15 @@
 //  · „Warten auf" für alles, was bei jemand anderem liegt (Hausverwaltung,
 //    Handwerker). Es verschwindet damit aus dem Offenen, ohne verloren zu
 //    gehen — und mahnt nicht, weil man selbst nichts tun kann.
-import { Hammer, PauseCircle, Plus, Trash2 } from 'lucide-react-native';
+import { Hammer, PauseCircle, Trash2 } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { View } from 'react-native';
 
 import { DisclosureChevron } from '@/components/DisclosureChevron';
+import { Eingabezeile } from '@/components/Eingabezeile';
 import { Feld } from '@/components/Feld';
 import { Haken } from '@/components/Haken';
-import { Listenzeile, Rutscht } from '@/components/Listenzeile';
+import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PressableScale } from '@/components/PressableScale';
 import { Reveal } from '@/components/Reveal';
@@ -35,9 +36,8 @@ import {
 } from '@/data/queries';
 import { hapticSelect, hapticSuccess } from '@/lib/haptics';
 import { kuerze, teileAufgaben } from '@/lib/listenLogik';
-import { webNoOutline } from '@/theme/layout';
 import { useColors } from '@/theme/ThemeProvider';
-import { R, Spacing, T } from '@/theme/theme.tokens';
+import { Spacing } from '@/theme/theme.tokens';
 
 export default function WohnungScreen() {
   const colors = useColors();
@@ -64,21 +64,19 @@ export default function WohnungScreen() {
     setEntwurf('');
   };
 
-  const feldStil = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: Spacing.sm,
-    borderRadius: R.lg,
-    borderWidth: 1,
-    borderColor: colors.chipBorder,
-    backgroundColor: colors.sunk,
-    paddingHorizontal: Spacing.md,
-  };
-
-  const zeile = (a: Aufgabe, art: 'offen' | 'wartend') => {
+  /**
+   * Eine Zeile plus ihr Editor.
+   *
+   * Die `Listenzeile` umschließt NUR die Zeile selbst — der aufklappende Teil
+   * liegt daneben. Läge er darin, würde die Layout-Animation ihn beim Wachsen
+   * stauchen (siehe `Listenzeile.tsx`).
+   */
+  const zeile = (a: Aufgabe, art: 'offen' | 'wartend', trenner: boolean) => {
     const aufgeklappt = offeneId === a.id;
     return (
       <View key={a.id}>
+        <Listenzeile>
+        {trenner && <Seam marginVertical={2} />}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
           <PressableScale
             accessibilityLabel={`${a.titel} erledigen`}
@@ -121,9 +119,10 @@ export default function WohnungScreen() {
             <Trash2 size={16} color={colors.text3} strokeWidth={2} />
           </PressableScale>
         </View>
+        </Listenzeile>
 
         {aufgeklappt && (
-          <Rutscht>
+          <Faltet>
             <View style={{ gap: Spacing.sm, paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
               <Feld
                 label={`Wer kümmert sich um ${a.titel}`}
@@ -138,7 +137,7 @@ export default function WohnungScreen() {
               onSichern={(v) => aendern.mutate({ id: a.id, patch: { wartetAuf: v } })}
               />
             </View>
-          </Rutscht>
+          </Faltet>
         )}
       </View>
     );
@@ -157,28 +156,14 @@ export default function WohnungScreen() {
       </Reveal>
 
       <Reveal delay={60}>
-        <View style={feldStil}>
-          <TextInput
-            accessibilityLabel="Aufgabe hinzufügen"
-            value={entwurf}
-            onChangeText={setEntwurf}
-            onSubmitEditing={hinzufuegen}
-            placeholder="Was steht an?"
-            placeholderTextColor={colors.text3}
-            returnKeyType="done"
-            style={[
-              { flex: 1, fontSize: T.md, color: colors.text, paddingVertical: Spacing.sm + 4, minHeight: 24 },
-              webNoOutline,
-            ]}
-          />
-          <PressableScale
-            accessibilityLabel="Aufgabe anlegen"
-            onPress={hinzufuegen}
-            style={{ padding: Spacing.xs, opacity: entwurf.trim() ? 1 : 0.35 }}
-          >
-            <Plus size={20} color={colors.accentA} strokeWidth={2.4} />
-          </PressableScale>
-        </View>
+        <Eingabezeile
+          label="Aufgabe hinzufügen"
+          platzhalter="Was steht an?"
+          wert={entwurf}
+          onWert={setEntwurf}
+          onAbschicken={hinzufuegen}
+          knopfLabel="Aufgabe anlegen"
+        />
       </Reveal>
 
       <Reveal delay={90}>
@@ -192,12 +177,7 @@ export default function WohnungScreen() {
           </GlassPanel>
         ) : (
           <GlassPanel>
-            {offen.map((a, i) => (
-              <Listenzeile key={a.id}>
-                {i > 0 && <Seam marginVertical={2} />}
-                {zeile(a, 'offen')}
-              </Listenzeile>
-            ))}
+            {offen.map((a, i) => zeile(a, 'offen', i > 0))}
           </GlassPanel>
         )}
       </Reveal>
@@ -221,12 +201,7 @@ export default function WohnungScreen() {
             </PressableScale>
             {zeigeWartend && (
               <GlassPanel style={{ marginTop: Spacing.xs }}>
-                {wartend.map((a, i) => (
-                  <Listenzeile key={a.id}>
-                    {i > 0 && <Seam marginVertical={2} />}
-                    {zeile(a, 'wartend')}
-                  </Listenzeile>
-                ))}
+                {wartend.map((a, i) => zeile(a, 'wartend', i > 0))}
               </GlassPanel>
             )}
           </View>

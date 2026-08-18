@@ -95,9 +95,14 @@ export function Backdrop({ scrollY, columns = true }: { scrollY?: SharedValue<nu
   const reduced = useReducedMotion();
   const { width } = useWindowDimensions();
 
+  // Der Grund ist WEISS, nicht cremefarben. Das dreht das Verhältnis um: die
+  // Steintafeln liegen als warme Flächen auf einer hellen Ebene, statt sich als
+  // etwas hellere Creme von cremefarbenem Grund abzuheben. Der Abstand zwischen
+  // Platte und Grund ist damit größer, nicht kleiner — und die Tempelfront
+  // zeichnet sich auf Weiß deutlicher ab.
   const base: [string, string, string] = isDark
     ? ['#0B0D10', '#000000', '#0C0E0C']
-    : ['#ECE7DB', '#F6F3EA', '#E7E3D5'];
+    : ['#FFFFFF', '#FFFFFF', '#FFFFFF'];
 
   // Tempelfront: Light in Santorini-Kuppel-Blau (blaugewaschene Architektur
   // auf gekalkter Wand), Dark in Weiß — Marmor im Mondlicht.

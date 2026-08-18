@@ -18,12 +18,13 @@
 // nichts kann, ist schlimmer als keiner.
 import { ChevronRight, Pencil, Plus, Trash2, UtensilsCrossed } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { View } from 'react-native';
 
+import { Eingabezeile, Nebenzeile } from '@/components/Eingabezeile';
 import { Feld } from '@/components/Feld';
 import { GlassPanel } from '@/components/GlassPanel';
 import { Haken } from '@/components/Haken';
-import { Listenzeile, Rutscht } from '@/components/Listenzeile';
+import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { PressableScale } from '@/components/PressableScale';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
@@ -43,9 +44,8 @@ import {
 } from '@/data/queries';
 import { hapticSelect, hapticSuccess } from '@/lib/haptics';
 import { fehlendeZutaten, zutatStatus, type ZutatStatus } from '@/lib/listenLogik';
-import { webNoOutline } from '@/theme/layout';
 import { useColors } from '@/theme/ThemeProvider';
-import { R, Spacing, T } from '@/theme/theme.tokens';
+import { Spacing } from '@/theme/theme.tokens';
 
 /**
  * Der Status als Wort, nicht als Farbe. Zwei Akzente hat diese App, und beide
@@ -91,17 +91,6 @@ export default function EssenScreen() {
     setEntwurf('');
   };
 
-  const feldStil = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: Spacing.sm,
-    borderRadius: R.lg,
-    borderWidth: 1,
-    borderColor: colors.chipBorder,
-    backgroundColor: colors.sunk,
-    paddingHorizontal: Spacing.md,
-  };
-
   return (
     <Screen>
       <Reveal>
@@ -115,28 +104,14 @@ export default function EssenScreen() {
       </Reveal>
 
       <Reveal delay={60}>
-        <View style={feldStil}>
-          <TextInput
-            accessibilityLabel="Essenswunsch eintragen"
-            value={entwurf}
-            onChangeText={setEntwurf}
-            onSubmitEditing={wunschHinzufuegen}
-            placeholder="Worauf hättest du Lust?"
-            placeholderTextColor={colors.text3}
-            returnKeyType="done"
-            style={[
-              { flex: 1, fontSize: T.md, color: colors.text, paddingVertical: Spacing.sm + 4, minHeight: 24 },
-              webNoOutline,
-            ]}
-          />
-          <PressableScale
-            accessibilityLabel="Wunsch hinzufügen"
-            onPress={wunschHinzufuegen}
-            style={{ padding: Spacing.xs, opacity: entwurf.trim() ? 1 : 0.35 }}
-          >
-            <Plus size={20} color={colors.accentA} strokeWidth={2.4} />
-          </PressableScale>
-        </View>
+        <Eingabezeile
+          label="Essenswunsch eintragen"
+          platzhalter="Worauf hättest du Lust?"
+          wert={entwurf}
+          onWert={setEntwurf}
+          onAbschicken={wunschHinzufuegen}
+          knopfLabel="Wunsch hinzufügen"
+        />
       </Reveal>
 
       <Reveal delay={90}>
@@ -155,7 +130,11 @@ export default function EssenScreen() {
               const fehlen = fehlendeZutaten(meine, artikel ?? []);
               const offen = offenerWunsch === w.id;
               return (
-                <Listenzeile key={w.id}>
+                // Nicht animiert: dieser Kasten wächst beim Aufklappen, und
+                // eine Layout-Animation würde seinen Inhalt stauchen
+                // (siehe `Listenzeile.tsx`).
+                <View key={w.id}>
+                  <Listenzeile>
                   {i > 0 && <Seam marginVertical={2} />}
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
                     <PressableScale
@@ -194,15 +173,17 @@ export default function EssenScreen() {
                       <Trash2 size={16} color={colors.text3} strokeWidth={2} />
                     </PressableScale>
                   </View>
+                  </Listenzeile>
 
                   {offen && (
-                    <Rutscht>
+                    <Faltet>
                       <View style={{ gap: Spacing.sm, paddingBottom: Spacing.sm }}>
                       {meine.map((z) => {
                         const status = zutatStatus(z, artikel ?? []);
                         const auf = bearbeitet === z.id;
                         return (
-                        <Listenzeile key={z.id}>
+                        <View key={z.id}>
+                          <Listenzeile>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingLeft: Spacing.xl }}>
                           <View style={{ flex: 1 }}>
                             <Type variant="body" tone="text2" numberOfLines={1}>{z.text}</Type>
@@ -242,9 +223,10 @@ export default function EssenScreen() {
                             <Pencil size={16} color={auf ? colors.accentA : colors.text3} strokeWidth={2} />
                           </PressableScale>
                           </View>
+                          </Listenzeile>
 
                           {auf && (
-                            <Rutscht>
+                            <Faltet>
                               <View style={{ gap: Spacing.sm, paddingLeft: Spacing.xl, paddingVertical: Spacing.sm }}>
                                 <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                                   <Feld
@@ -291,33 +273,28 @@ export default function EssenScreen() {
                                   <Type variant="label" tone="accentB">Zutat streichen</Type>
                                 </PressableScale>
                               </View>
-                            </Rutscht>
+                            </Faltet>
                           )}
-                        </Listenzeile>
+                        </View>
                         );
                       })}
 
-                      <View style={[feldStil, { marginLeft: Spacing.xl }]}>
-                        <TextInput
-                          accessibilityLabel="Zutat hinzufügen"
-                          value={zutatEntwurf}
-                          onChangeText={setZutatEntwurf}
-                          onSubmitEditing={() => {
-                            const text = zutatEntwurf.trim();
-                            if (!text) return;
-                            hapticSuccess();
-                            zutatAnlegen.mutate({ wunschId: w.id, text });
-                            setZutatEntwurf('');
-                          }}
-                          placeholder="Zutat"
-                          placeholderTextColor={colors.text3}
-                          returnKeyType="done"
-                          style={[
-                            { flex: 1, fontSize: T.md, color: colors.text, paddingVertical: Spacing.sm, minHeight: 22 },
-                            webNoOutline,
-                          ]}
-                        />
-                      </View>
+                      {/* Eine Stufe leiser als die Zeile oben: hier ist sie
+                          keine Tür, sondern eine Zeile im Formular. */}
+                      <Nebenzeile
+                        label="Zutat hinzufügen"
+                        platzhalter="Zutat"
+                        wert={zutatEntwurf}
+                        onWert={setZutatEntwurf}
+                        onAbschicken={() => {
+                          const text = zutatEntwurf.trim();
+                          if (!text) return;
+                          hapticSuccess();
+                          zutatAnlegen.mutate({ wunschId: w.id, text });
+                          setZutatEntwurf('');
+                        }}
+                        stil={{ marginLeft: Spacing.xl }}
+                      />
 
                       {/* Nur anbieten, wenn es wirklich etwas zu übernehmen
                           gibt — sonst wäre es ein Knopf, der nichts tut. */}
@@ -346,9 +323,9 @@ export default function EssenScreen() {
                         </Type>
                       )}
                       </View>
-                    </Rutscht>
+                    </Faltet>
                   )}
-                </Listenzeile>
+                </View>
               );
             })}
           </GlassPanel>

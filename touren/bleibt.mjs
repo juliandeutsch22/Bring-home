@@ -61,6 +61,7 @@ const randKopf = await p.evaluate(() => ({
   farbschema: document.querySelector('meta[name="color-scheme"]')?.getAttribute('content') ?? '',
   themen: [...document.querySelectorAll('meta[name="theme-color"]')].map((m) => m.getAttribute('media') ?? 'ohne'),
   grund: getComputedStyle(document.body).backgroundColor,
+  stilBlock: document.getElementById('grundflaeche') !== null,
 }));
 pruef('die Seite reicht bis unter die Notch', randKopf.viewport.includes('viewport-fit=cover'), randKopf.viewport);
 pruef('die Seite bekennt sich zu Hell', randKopf.farbschema === 'light', randKopf.farbschema);
@@ -68,14 +69,18 @@ pruef('die Seite bekennt sich zu Hell', randKopf.farbschema === 'light', randKop
 // Widerspruch: der Rahmen schlüge um, während die App hell bliebe.
 pruef('es gibt genau eine Themenfarbe, ohne Dunkel-Ausnahme',
   randKopf.themen.length === 1 && randKopf.themen[0] === 'ohne', JSON.stringify(randKopf.themen));
-// Weiß und Durchsichtig sind beide falsch: dort, wo nichts gezeichnet ist,
-// käme sonst das Weiß des Browsers durch.
-pruef(
-  'hinter der App liegt eine Farbe, nicht Weiß',
-  !/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/.test(randKopf.grund) &&
-    !/rgb\(255,\s*255,\s*255\)/.test(randKopf.grund),
-  randKopf.grund,
-);
+// Seit der Grund WEISS ist, lässt sich „richtig gestrichen" nicht mehr an der
+// Farbe allein ablesen — ungestrichen sähe genauso aus. Geprüft wird deshalb
+// die Kette: der Stil-Block ist da, die Fläche ist deckend, und sie stimmt mit
+// dem überein, was das Manifest als Startfarbe angibt. Laufen die beiden
+// auseinander, blitzt beim Start die eine vor der anderen auf.
+const hexZuRgb = (h) => `rgb(${parseInt(h.slice(1, 3), 16)}, ${parseInt(h.slice(3, 5), 16)}, ${parseInt(h.slice(5, 7), 16)})`;
+pruef('die Grundfläche wird ausdrücklich gestrichen', randKopf.stilBlock, 'kein <style id="grundflaeche">');
+pruef('sie ist deckend, nicht durchsichtig',
+  !/rgba?\([^)]*,\s*0\)|transparent/.test(randKopf.grund), randKopf.grund);
+pruef('und stimmt mit der Startfarbe des Manifests überein',
+  randKopf.grund === hexZuRgb(manifest.background_color),
+  `${randKopf.grund} vs. ${manifest.background_color}`);
 
 console.log('\n2) Der Service Worker meldet sich an');
 const angemeldet = await p.evaluate(async () => {
