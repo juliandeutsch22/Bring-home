@@ -182,6 +182,12 @@ await tippe('Brot auf die Einkaufsliste');
 t = await text();
 pruef('einzeln übernehmen genügt', t.includes('Alles beisammen'), t.slice(0, 800));
 
+// Die Kennzeichnung an der ZUGEKLAPPTEN Zeile: kochbar oder nicht, ohne das
+// Gericht zu öffnen. Das ist der eigentliche Nutzen — offen sieht man es ohnehin.
+await tippe('Linsen mit Spätzle zuklappen');
+pruef('das versorgte Gericht trägt sein Zeichen', (await zeilen('Linsen mit Spätzle: alles da')) === 1);
+await tippe('Linsen mit Spätzle öffnen');
+
 await tippe('Zutat Spätzle bearbeiten');
 await tippe('Spätzle haben wir da');
 t = await text();

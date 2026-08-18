@@ -17,10 +17,13 @@
 //     „an" — ein dauerhaft sichtbarer Knopf, der meistens nichts tut, wäre
 //     genau die Lüge, die die Formensprache vermeidet.
 //
-// Links steht ein Plus, und zwar in `text3`: es ist ein Zeichen, kein Knopf.
-// (In Stoa trug es einmal den Akzent und sah dadurch aus wie einer — dort wurde
-// daraus eine echte Büroklammer. Hier gibt es nichts anzuhängen, also bleibt es
-// ein Zeichen und trägt die Farbe eines Zeichens.)
+// LINKS STEHT NICHTS, und das war eine Korrektur. Zuerst saß dort ein Plus,
+// aus Stoa mitkopiert. Dort trägt es seinen Platz: es wird zur Büroklammer,
+// sobald es etwas anzuhängen gibt, und bleibt nur ohne Schlüssel ein Zeichen.
+// Hier gibt es nichts anzuhängen — es war reine Zierde. Schlimmer noch: sobald
+// man tippt, erscheint rechts das ECHTE Plus, und dann standen zwei gleiche
+// Zeichen in einer Zeile, von denen nur eines etwas tut. Ein Zeichen, das
+// aussieht wie ein Knopf und keiner ist, kostet mehr als der leere Platz.
 import { Plus } from 'lucide-react-native';
 import React from 'react';
 import { TextInput, View } from 'react-native';
@@ -72,10 +75,13 @@ export function Eingabezeile({
         alignItems: 'center',
         gap: Spacing.sm,
         paddingVertical: Spacing.sm + 5,
-        paddingHorizontal: Spacing.md,
+        // Links mehr Luft als rechts: dort stand einmal ein Zeichen, und der
+        // Text soll nicht an der Rundung der Pille kleben. Rechts hält der
+        // Knopf den Abstand von selbst.
+        paddingLeft: Spacing.lg,
+        paddingRight: Spacing.md,
       }}
     >
-      <Plus size={18} color={colors.text3} strokeWidth={2.2} />
       <TextInput
         accessibilityLabel={label}
         value={wert}

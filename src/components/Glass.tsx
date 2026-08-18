@@ -97,7 +97,12 @@ export function Glass({ variant = 'card', radius, tint, style, contentStyle, chi
               left: inset,
               right: inset,
               height: GRAT,
-              backgroundColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,1)',
+              // Nicht mehr reines Weiß. Auf dem cremefarbenen Grund von früher
+              // las sich das als Licht, das die Oberkante fängt; auf WEISSEM
+              // Grund ist es dieselbe Farbe wie die Luft darüber — die Platte
+              // sah aus, als fehle ihr die obere Kante. Halbdurchlässig lässt
+              // es den Stein durchscheinen und bleibt trotzdem ein Grat.
+              backgroundColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.6)',
             }}
           />
           <View

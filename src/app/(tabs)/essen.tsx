@@ -16,10 +16,11 @@
 // Der Gemini-Vorschlag („Zutaten vorschlagen lassen") kommt in einer späteren
 // Etappe. Bis er wirklich etwas tut, steht er hier NICHT — ein Knopf, der
 // nichts kann, ist schlimmer als keiner.
-import { ChevronRight, Pencil, Plus, Trash2, UtensilsCrossed } from 'lucide-react-native';
+import { Check, Pencil, Plus, Trash2, UtensilsCrossed } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
+import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile, Nebenzeile } from '@/components/Eingabezeile';
 import { Feld } from '@/components/Feld';
 import { GlassPanel } from '@/components/GlassPanel';
@@ -152,15 +153,25 @@ export default function EssenScreen() {
                         <Type variant="body" numberOfLines={1}>{w.gericht}</Type>
                         {w.vonWem && <Type variant="caption" tone="text3" numberOfLines={1}>{`von ${w.vonWem}`}</Type>}
                       </View>
+                      {/* Die Kennzeichnung an der ZUGEKLAPPTEN Zeile: ob das
+                          Gericht kochbar ist, soll man sehen, ohne es zu
+                          öffnen. Ein Haken, der nur er selbst ist — nackt auf
+                          der Platte, die Farbe im Strich. Er steht nur bei
+                          Gerichten, die überhaupt Zutaten haben: eines ohne
+                          ist nicht versorgt, sondern ungeplant. */}
+                      {meine.length > 0 && fehlen.length === 0 && (
+                        <View accessibilityLabel={`${w.gericht}: alles da`}>
+                          <Check size={15} color={colors.accentA} strokeWidth={2.6} />
+                        </View>
+                      )}
                       {meine.length > 0 && (
                         <Type variant="caption" tone="text3" tabular>{`${meine.length} Zutaten`}</Type>
                       )}
-                      <ChevronRight
-                        size={15}
-                        color={colors.text3}
-                        strokeWidth={2}
-                        style={{ transform: [{ rotate: offen ? '90deg' : '0deg' }] }}
-                      />
+                      {/* Dieselbe Komponente wie überall sonst. Vorher stand
+                          hier ein rohes Icon mit hartem Umschalten — und weil
+                          `style` auf einem lucide-Symbol im Web nicht ankommt,
+                          drehte es gar nicht. Gemessen, nicht vermutet. */}
+                      <DisclosureChevron open={offen} size={15} color={colors.text3} />
                     </PressableScale>
                     <PressableScale
                       accessibilityLabel={`${w.gericht} löschen`}
