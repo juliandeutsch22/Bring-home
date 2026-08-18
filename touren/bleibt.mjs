@@ -114,7 +114,26 @@ await p.waitForTimeout(1800);
 t = await text();
 pruef('das Gelöschte kommt NICHT zurück', !t.includes('Olivenöl'), t.slice(0, 400));
 
-console.log('\n5) Was in der Wohnung steht, bleibt ebenfalls');
+console.log('\n5) Der Haushalts-Code überlebt das Schließen');
+// Die Frage aus der Praxis: muss der Zweite den Code bei jedem Öffnen neu
+// eintippen? Hier ohne Server nachgestellt — der Code wird so abgelegt, wie
+// `haushalt.ts` ihn ablegt, und danach wird die Seite neu geladen.
+await p.evaluate(() => {
+  window.localStorage.setItem('bring-home.haushalt', JSON.stringify({ id: 'test-haushalt', code: 'K7MP2QRS' }));
+});
+await p.reload({ waitUntil: 'networkidle' });
+await p.waitForTimeout(1800);
+// Das Kettenglied heißt jetzt anders — es weiß, dass geteilt wird. Genau das
+// ist schon die halbe Antwort: der gemerkte Haushalt hat den Neustart überlebt.
+await tippe('Geteilte Liste');
+await p.waitForTimeout(700);
+t = await text();
+pruef('der Code steht nach dem Neuladen noch da', t.includes('K7MP2QRS'), t.slice(0, 500));
+pruef('und die App weiß, dass geteilt wird', !t.toLowerCase().includes('nur auf diesem gerät'), t.slice(0, 500));
+await tippe('Zurück');
+await p.waitForTimeout(600);
+
+console.log('\n6) Was in der Wohnung steht, bleibt ebenfalls');
 const tab = async (n) => {
   const box = await p.evaluate((name) => {
     const k = [...document.querySelectorAll('[role="tab"]')].filter((e) => (e.getAttribute('aria-label') ?? '').includes(name));

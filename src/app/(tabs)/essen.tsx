@@ -20,6 +20,7 @@ import { Check, Pencil, Plus, Trash2, UtensilsCrossed } from 'lucide-react-nativ
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
+import { Chip } from '@/components/Chip';
 import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile, Nebenzeile } from '@/components/Eingabezeile';
 import { Feld } from '@/components/Feld';
@@ -166,7 +167,7 @@ export default function EssenScreen() {
                       }}
                       style={{ paddingVertical: Spacing.sm + 2 }}
                     >
-                      <Haken an={markiert.has(w.id)} rund />
+                      <Haken an={markiert.has(w.id)} />
                     </PressableScale>
                     <PressableScale
                       accessibilityLabel={offen ? `${w.gericht} zuklappen` : `${w.gericht} öffnen`}
@@ -284,22 +285,24 @@ export default function EssenScreen() {
                                   />
                                 </View>
                                 {/* Das Einzige, was die App nicht selbst wissen
-                                    kann: was im Vorratsschrank steht. */}
-                                <PressableScale
+                                    kann: was im Vorratsschrank steht.
+
+                                    Ein CHIP, kein Haken: das hier ist keine
+                                    Erledigung, sondern eine Eigenschaft — Salz
+                                    hat man immer da. Der Haken bedeutet in
+                                    dieser App „abgehakt, die Zeile geht", und
+                                    genau das passiert hier nicht. Getönte
+                                    Fläche heißt „an", und dafür ist der Chip
+                                    das Bauteil. */}
+                                <Chip
+                                  label="Haben wir da"
+                                  active={z.habenWir}
                                   accessibilityLabel={
                                     z.habenWir ? `${z.text} haben wir doch nicht` : `${z.text} haben wir da`
                                   }
-                                  onPress={() => {
-                                    hapticSelect();
-                                    zutatAendern.mutate({ id: z.id, patch: { habenWir: !z.habenWir } });
-                                  }}
-                                  style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, alignSelf: 'flex-start', paddingVertical: Spacing.xs }}
-                                >
-                                  <Haken an={z.habenWir} groesse={20} />
-                                  <Type variant="label" tone={z.habenWir ? 'accentA' : 'text3'}>
-                                    Haben wir da
-                                  </Type>
-                                </PressableScale>
+                                  onPress={() => zutatAendern.mutate({ id: z.id, patch: { habenWir: !z.habenWir } })}
+                                  style={{ alignSelf: 'flex-start' }}
+                                />
                                 <PressableScale
                                   accessibilityLabel={`Zutat ${z.text} entfernen`}
                                   onPress={() => {
@@ -411,7 +414,7 @@ export default function EssenScreen() {
                         pressedScale={0.99}
                         style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1, paddingVertical: Spacing.sm + 2 }}
                       >
-                        <Haken an={!markiert.has(w.id)} rund />
+                        <Haken an={!markiert.has(w.id)} />
                         <Type variant="body" tone="text3" style={{ flex: 1 }} numberOfLines={1}>{w.gericht}</Type>
                         {(zutatenJeWunsch.get(w.id) ?? []).length > 0 && (
                           <Type variant="caption" tone="text3" tabular>

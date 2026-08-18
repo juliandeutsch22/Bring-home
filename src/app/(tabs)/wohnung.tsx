@@ -92,7 +92,7 @@ export default function WohnungScreen() {
             {art === 'wartend' && !markiert.has(a.id) ? (
               <PauseCircle size={22} color={colors.accentA} strokeWidth={2} />
             ) : (
-              <Haken an={markiert.has(a.id)} rund />
+              <Haken an={markiert.has(a.id)} />
             )}
           </PressableScale>
           <PressableScale
@@ -244,7 +244,7 @@ export default function WohnungScreen() {
                       pressedScale={0.99}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm + 2 }}
                     >
-                      <Haken an={!markiert.has(a.id)} rund />
+                      <Haken an={!markiert.has(a.id)} />
                       <Type variant="body" tone="text3" style={{ flex: 1 }} numberOfLines={1}>{a.titel}</Type>
                     </PressableScale>
                   </Listenzeile>

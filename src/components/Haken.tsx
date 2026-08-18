@@ -7,8 +7,24 @@
 // kleinen Auftritt — und das Kästchen darunter wechselt seine Füllung weich
 // statt hart.
 //
-// Die Formensprache bleibt: leer = nacktes Kästchen mit Strich (getönte Fläche
+// Die Formensprache bleibt: leer = nackter Ring mit Strich (getönte Fläche
 // hieße in diesem System „an"), voll = getönte Fläche mit weißem Haken.
+//
+// EINE Form, überall. Vorher trug der Einkauf ein Kästchen und Wohnung wie
+// Essen einen Kreis — nach der Konvention „Dinge bekommen ein Kästchen,
+// Handlungen einen Kreis". Formal richtig, praktisch wirkungslos: die
+// Tab-Leiste sagt längst, in welcher Liste man ist, und die Geste ist überall
+// dieselbe (antippen, die Zeile verlässt die aktive Liste). Eine Bedeutung,
+// also eine Form.
+//
+// Den Ausschlag gab, dass beide Radien auf dem Essen-Bildschirm in DERSELBEN
+// Platte standen, wenige Pixel auseinander. Dort las sich die Unterscheidung
+// nicht mehr als Absicht, sondern als Schlamperei.
+//
+// Was NICHT hierher gehört: eine Eigenschaft umschalten. „Haben wir da" ist
+// keine Erledigung, sondern ein Zustand — dafür gibt es `Chip`, die getönte
+// Pille. Unterschiedliche Dinge bekommen unterschiedliche Bauteile, nicht
+// unterschiedliche Radien am gleichen.
 import { Check } from 'lucide-react-native';
 import React from 'react';
 import { View } from 'react-native';
@@ -17,16 +33,7 @@ import Animated, { interpolateColor, useAnimatedStyle, useDerivedValue, withTimi
 import { Dur, Ease } from '@/theme/motion.tokens';
 import { useColors, useReducedMotion } from '@/theme/ThemeProvider';
 
-export function Haken({
-  an,
-  rund = false,
-  groesse = 22,
-}: {
-  an: boolean;
-  /** Aufgaben tragen einen Kreis, Einkaufsartikel ein Kästchen. */
-  rund?: boolean;
-  groesse?: number;
-}) {
+export function Haken({ an, groesse = 22 }: { an: boolean; groesse?: number }) {
   const colors = useColors();
   const reduced = useReducedMotion();
 
@@ -54,7 +61,7 @@ export function Haken({
         {
           width: groesse,
           height: groesse,
-          borderRadius: rund ? groesse / 2 : 6,
+          borderRadius: groesse / 2,
           borderWidth: 1.5,
           backgroundColor: 'transparent',
           alignItems: 'center',
