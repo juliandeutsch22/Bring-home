@@ -41,6 +41,7 @@ import {
 } from '@/data/queries';
 import { useHaushalt } from '@/data/haushalt';
 import { hapticSelect, hapticSuccess } from '@/lib/haptics';
+import { useNachklang } from '@/lib/nachklang';
 import { findeArtikel, kuerze, teileListe } from '@/lib/listenLogik';
 import { useColors } from '@/theme/ThemeProvider';
 import { Spacing } from '@/theme/theme.tokens';
@@ -60,6 +61,8 @@ export default function EinkaufScreen() {
   const [zeigeWagen, setZeigeWagen] = useState(false);
   /** Welcher Artikel gerade seinen Editor offen hat. Immer höchstens einer. */
   const [bearbeitet, setBearbeitet] = useState<string | null>(null);
+  // Erst den Haken zeigen, dann die Zeile fortschaffen (siehe `nachklang.ts`).
+  const { markiert, anstossen } = useNachklang();
 
   const { offen, imWagen } = useMemo(() => teileListe(artikel ?? []), [artikel]);
   const [gezeigterWagen, restWagen] = useMemo(() => kuerze(imWagen), [imWagen]);
@@ -121,7 +124,7 @@ export default function EinkaufScreen() {
             <EmptyState
               icon={<ShoppingBasket size={20} color={colors.accentA} strokeWidth={2} />}
               title="Nichts fehlt"
-              body="Was euch einfällt, kommt oben hinein — und steht ab Etappe 3 sofort auch beim anderen."
+              body="Was euch einfällt, kommt oben hinein. Habt ihr die Liste geteilt, steht es sofort auch beim anderen."
             />
           </GlassPanel>
         ) : (
@@ -140,13 +143,15 @@ export default function EinkaufScreen() {
                     accessibilityLabel={`${a.text} abhaken`}
                     onPress={() => {
                       hapticSelect();
-                      umschalten.mutate({ id: a.id, imWagen: false });
+                      anstossen(a.id, () => umschalten.mutate({ id: a.id, imWagen: false }));
                     }}
                     pressedScale={0.99}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1, paddingVertical: Spacing.sm + 2 }}
                   >
-                    {/* Nacktes Kästchen: getönt heißt in diesem System „an". */}
-                    <Haken an={false} />
+                    {/* Nacktes Kästchen: getönt heißt in diesem System „an".
+                        Beim Abhaken füllt es sich — und ERST danach wandert die
+                        Zeile in den Wagen. */}
+                    <Haken an={markiert.has(a.id)} />
                     <View style={{ flex: 1 }}>
                       <Type variant="body" numberOfLines={1}>{a.text}</Type>
                       {a.vonWem && <Type variant="caption" tone="text3" numberOfLines={1}>{`von ${a.vonWem}`}</Type>}
@@ -248,12 +253,12 @@ export default function EinkaufScreen() {
                       accessibilityLabel={`${a.text} zurück auf die Liste`}
                       onPress={() => {
                         hapticSelect();
-                        umschalten.mutate({ id: a.id, imWagen: true });
+                        anstossen(a.id, () => umschalten.mutate({ id: a.id, imWagen: true }));
                       }}
                       pressedScale={0.99}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm + 2 }}
                     >
-                      <Haken an />
+                      <Haken an={!markiert.has(a.id)} />
                       <Type variant="body" tone="text3" style={{ flex: 1 }} numberOfLines={1}>{a.text}</Type>
                     </PressableScale>
                   </Listenzeile>

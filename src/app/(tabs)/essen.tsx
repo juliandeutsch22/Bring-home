@@ -45,6 +45,7 @@ import {
   useZutatLoeschen,
 } from '@/data/queries';
 import { hapticSelect, hapticSuccess } from '@/lib/haptics';
+import { useNachklang } from '@/lib/nachklang';
 import { fehlendeZutaten, istKochbar, kuerze, teileWuensche, zutatStatus, type ZutatStatus } from '@/lib/listenLogik';
 import { useColors } from '@/theme/ThemeProvider';
 import { Spacing } from '@/theme/theme.tokens';
@@ -80,6 +81,8 @@ export default function EssenScreen() {
   /** Welche Zutat gerade ihren Editor offen hat. Immer höchstens eine. */
   const [bearbeitet, setBearbeitet] = useState<string | null>(null);
   const [zeigeArchiv, setZeigeArchiv] = useState(false);
+  // Erst den Haken zeigen, dann die Zeile fortschaffen (siehe `nachklang.ts`).
+  const { markiert, anstossen } = useNachklang();
 
   const { offen: wunschOffen, gekocht } = useMemo(() => teileWuensche(wuensche ?? []), [wuensche]);
   const [gezeigtGekocht, restGekocht] = useMemo(() => kuerze(gekocht), [gekocht]);
@@ -159,11 +162,11 @@ export default function EssenScreen() {
                       onPress={() => {
                         hapticSuccess();
                         if (offen) setOffenerWunsch(null);
-                        wunschUmschalten.mutate({ id: w.id, gekocht: false });
+                        anstossen(w.id, () => wunschUmschalten.mutate({ id: w.id, gekocht: false }));
                       }}
                       style={{ paddingVertical: Spacing.sm + 2 }}
                     >
-                      <Haken an={false} rund />
+                      <Haken an={markiert.has(w.id)} rund />
                     </PressableScale>
                     <PressableScale
                       accessibilityLabel={offen ? `${w.gericht} zuklappen` : `${w.gericht} öffnen`}
@@ -294,7 +297,7 @@ export default function EssenScreen() {
                                 >
                                   <Haken an={z.habenWir} groesse={20} />
                                   <Type variant="label" tone={z.habenWir ? 'accentA' : 'text3'}>
-                                    Haben wir immer da
+                                    Haben wir da
                                   </Type>
                                 </PressableScale>
                                 <PressableScale
@@ -400,12 +403,12 @@ export default function EssenScreen() {
                         accessibilityLabel={`${w.gericht} wieder aufnehmen`}
                         onPress={() => {
                           hapticSelect();
-                          wunschUmschalten.mutate({ id: w.id, gekocht: true });
+                          anstossen(w.id, () => wunschUmschalten.mutate({ id: w.id, gekocht: true }));
                         }}
                         pressedScale={0.99}
                         style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1, paddingVertical: Spacing.sm + 2 }}
                       >
-                        <Haken an rund />
+                        <Haken an={!markiert.has(w.id)} rund />
                         <Type variant="body" tone="text3" style={{ flex: 1 }} numberOfLines={1}>{w.gericht}</Type>
                         {(zutatenJeWunsch.get(w.id) ?? []).length > 0 && (
                           <Type variant="caption" tone="text3" tabular>

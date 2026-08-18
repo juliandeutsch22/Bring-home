@@ -35,6 +35,7 @@ import {
   useAufgaben,
 } from '@/data/queries';
 import { hapticSelect, hapticSuccess } from '@/lib/haptics';
+import { useNachklang } from '@/lib/nachklang';
 import { kuerze, teileAufgaben } from '@/lib/listenLogik';
 import { useColors } from '@/theme/ThemeProvider';
 import { Spacing } from '@/theme/theme.tokens';
@@ -52,6 +53,8 @@ export default function WohnungScreen() {
   const [zeigeErledigt, setZeigeErledigt] = useState(false);
   /** Welche Aufgabe gerade ihre Zeile aufgeklappt hat (Person / Warten auf). */
   const [offeneId, setOffeneId] = useState<string | null>(null);
+  // Erst den Haken zeigen, dann die Zeile fortschaffen (siehe `nachklang.ts`).
+  const { markiert, anstossen } = useNachklang();
 
   const { offen, wartend, erledigt } = useMemo(() => teileAufgaben(aufgaben ?? []), [aufgaben]);
   const [gezeigtErledigt, restErledigt] = useMemo(() => kuerze(erledigt), [erledigt]);
@@ -82,14 +85,14 @@ export default function WohnungScreen() {
             accessibilityLabel={`${a.titel} erledigen`}
             onPress={() => {
               hapticSelect();
-              umschalten.mutate({ id: a.id, erledigt: false });
+              anstossen(a.id, () => umschalten.mutate({ id: a.id, erledigt: false }));
             }}
             style={{ paddingVertical: Spacing.sm + 2 }}
           >
-            {art === 'wartend' ? (
+            {art === 'wartend' && !markiert.has(a.id) ? (
               <PauseCircle size={22} color={colors.accentA} strokeWidth={2} />
             ) : (
-              <Haken an={false} rund />
+              <Haken an={markiert.has(a.id)} rund />
             )}
           </PressableScale>
           <PressableScale
@@ -231,12 +234,12 @@ export default function WohnungScreen() {
                       accessibilityLabel={`${a.titel} wieder öffnen`}
                       onPress={() => {
                         hapticSelect();
-                        umschalten.mutate({ id: a.id, erledigt: true });
+                        anstossen(a.id, () => umschalten.mutate({ id: a.id, erledigt: true }));
                       }}
                       pressedScale={0.99}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm + 2 }}
                     >
-                      <Haken an rund />
+                      <Haken an={!markiert.has(a.id)} rund />
                       <Type variant="body" tone="text3" style={{ flex: 1 }} numberOfLines={1}>{a.titel}</Type>
                     </PressableScale>
                   </Listenzeile>
