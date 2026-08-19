@@ -229,7 +229,7 @@ export default function EinkaufScreen() {
             style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, alignSelf: 'flex-start', paddingVertical: Spacing.xs }}
           >
             <Send size={16} color={colors.accentA} strokeWidth={2.2} />
-            <Type variant="label" tone="accentA">Bitte jemanden, das mitzunehmen</Type>
+            <Type variant="label" tone="accentA">Du brauchst etwas dringend?</Type>
           </PressableScale>
         </Reveal>
       )}
