@@ -109,6 +109,33 @@ await p.waitForTimeout(1800);
 await schreibe('Etwas hinzufügen', 'Milch');
 pruef('mit geteilter Liste steht der Einstieg da', (await zeilen('Jemanden bitten, etwas mitzunehmen')) === 1);
 
+// Der Mitteilungs-Schalter steht auf dem Teilen-Bildschirm, weil die Erlaubnis
+// pro GERÄT gilt und der Empfänger sie braucht.
+await tippe('Geteilte Liste');
+const schalter = await p.evaluate(() => {
+  const e = [...document.querySelectorAll('[aria-label]')].find((x) =>
+    (x.getAttribute('aria-label') ?? '').startsWith('Mitteilungen '));
+  if (!e) return null;
+  const bahn = e.firstElementChild;
+  const traeger = bahn?.firstElementChild;
+  return {
+    rolle: e.getAttribute('role'),
+    an: e.getAttribute('aria-checked'),
+    bahnFarbe: bahn ? getComputedStyle(bahn).backgroundColor : null,
+    knopf: traeger ? getComputedStyle(traeger).transform : null,
+  };
+});
+pruef('es ist ein Schalter, kein Textknopf', schalter?.rolle === 'switch', JSON.stringify(schalter));
+// Ohne die Angabe liest ein Screenreader „Schalter" vor und verschweigt genau
+// das, wofür es ihn gibt.
+pruef('und er sagt vorlesbar, dass er aus ist', schalter?.an === 'false', JSON.stringify(schalter));
+// Aus heißt: vertiefte Steinfläche, Knopf links. Getönt hieße in dieser App
+// „an" — und das wäre hier gelogen.
+pruef('aus liegt der Knopf links auf ungetönter Bahn',
+  schalter?.knopf === 'matrix(1, 0, 0, 1, 0, 0)' && schalter?.bahnFarbe === 'rgb(232, 230, 224)',
+  JSON.stringify(schalter));
+await tippe('Zurück');
+
 await tippe('Jemanden bitten, etwas mitzunehmen');
 t = await text();
 pruef('der Bitten-Bildschirm ist da', enthaelt(t, 'Bitte mitnehmen'), t.slice(0, 400));

@@ -15,6 +15,7 @@ import { Platform, Share, TextInput, View } from 'react-native';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PressableScale } from '@/components/PressableScale';
 import { Reveal } from '@/components/Reveal';
+import { Schalter } from '@/components/Schalter';
 import { Screen } from '@/components/Screen';
 import { Seam } from '@/components/Seam';
 import { Type } from '@/components/Type';
@@ -52,6 +53,9 @@ export default function HaushaltScreen() {
   const [eingabe, setEingabe] = useState('');
   const [kopiert, setKopiert] = useState(false);
   const [lage, setLage] = useState<Lage>(() => mitteilungsLage());
+  // Während der Systemdialog offen ist, darf der Schalter nicht ein zweites Mal
+  // umgelegt werden — ein zweiter Aufruf beantwortet den ersten nie.
+  const [laeuftMitteilung, setLaeuftMitteilung] = useState(false);
 
   const laedt = stand === 'laedt';
 
@@ -227,18 +231,28 @@ export default function HaushaltScreen() {
       {id && (
         <Reveal delay={100}>
           <GlassPanel>
-            <Type variant="eyebrow" tone="text3">Mitteilungen</Type>
-            <Type variant="body" tone="text2" style={{ marginTop: Spacing.xs }}>
-              {MITTEILUNGS_TEXT[lage]}
-            </Type>
-            {(lage === 'fragen' || lage === 'bereit') && (
-              <>
-                <Seam marginVertical={Spacing.md} />
-                <PressableScale
-                  accessibilityLabel={lage === 'bereit' ? 'Mitteilungen ausschalten' : 'Mitteilungen einschalten'}
-                  onPress={() => {
-                    hapticSelect();
-                    void (async () => {
+            {/* Die Zeile mit dem Schalter steht OBEN, der erklärende Satz
+                darunter. Ein Schalter ist die Antwort auf „ist das an?", und
+                diese Frage soll man beantwortet bekommen, bevor man drei Zeilen
+                gelesen hat. */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+              <View style={{ flex: 1 }}>
+                <Type variant="eyebrow" tone="text3">Mitteilungen</Type>
+                <Type variant="label" style={{ marginTop: 2 }}>Auf diesem Gerät</Type>
+              </View>
+              <Schalter
+                an={lage === 'bereit'}
+                // Gesperrt heißt: die Lage lässt sich von hier aus nicht ändern
+                // (abgelehnt, Browser-Tab auf iOS, kein Schlüssel). Der Schalter
+                // bleibt trotzdem stehen und zeigt „aus" — verschwände er, wäre
+                // nicht einmal klar, dass es das gibt.
+                gesperrt={laeuftMitteilung || (lage !== 'fragen' && lage !== 'bereit')}
+                accessibilityLabel={lage === 'bereit' ? 'Mitteilungen ausschalten' : 'Mitteilungen einschalten'}
+                onPress={() => {
+                  hapticSelect();
+                  setLaeuftMitteilung(true);
+                  void (async () => {
+                    try {
                       if (lage === 'bereit') {
                         await mitteilungenAusschalten();
                         setLage(mitteilungsLage());
@@ -248,16 +262,17 @@ export default function HaushaltScreen() {
                       // ohne erkennbaren Anlass wird weggetippt, und danach ist
                       // die Tür für immer zu.
                       setLage(await mitteilungenEinschalten(id));
-                    })();
-                  }}
-                  style={{ alignSelf: 'flex-start' }}
-                >
-                  <Type variant="label" tone={lage === 'bereit' ? 'accentB' : 'accentA'}>
-                    {lage === 'bereit' ? 'Nicht mehr benachrichtigen' : 'Mitteilungen erlauben'}
-                  </Type>
-                </PressableScale>
-              </>
-            )}
+                    } finally {
+                      // Sonst bliebe der Schalter gesperrt, wenn das Abo
+                      // scheitert — und wäre für den Rest der Sitzung tot.
+                      setLaeuftMitteilung(false);
+                    }
+                  })();
+                }}
+              />
+            </View>
+            <Seam marginVertical={Spacing.md} />
+            <Type variant="caption" tone="text3">{MITTEILUNGS_TEXT[lage]}</Type>
           </GlassPanel>
         </Reveal>
       )}

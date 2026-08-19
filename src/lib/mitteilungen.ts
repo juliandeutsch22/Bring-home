@@ -112,19 +112,26 @@ export async function mitteilungenEinschalten(haushaltId: string): Promise<Lage>
       }));
 
     const k = hole();
-    const { data } = await k.auth.getSession();
+    const { data } = await mitFrist(k.auth.getSession());
     const nutzerId = data.session?.user?.id;
     if (!nutzerId) return 'unmoeglich';
 
-    await k.from('push_abos').upsert(
-      {
-        endpoint: abo.endpoint,
-        nutzer_id: nutzerId,
-        haushalt_id: haushaltId,
-        p256dh: alsBase64(abo.getKey('p256dh')),
-        auth: alsBase64(abo.getKey('auth')),
-      },
-      { onConflict: 'endpoint' },
+    // Auch hier mit Frist. Ohne sie bliebe der Schalter bei einem schweigenden
+    // Netz für den Rest der Sitzung gesperrt — halb umgelegt und unbedienbar,
+    // was schlimmer ist als ein Schalter, der zurückspringt.
+    await mitFrist(
+      Promise.resolve(
+        k.from('push_abos').upsert(
+          {
+            endpoint: abo.endpoint,
+            nutzer_id: nutzerId,
+            haushalt_id: haushaltId,
+            p256dh: alsBase64(abo.getKey('p256dh')),
+            auth: alsBase64(abo.getKey('auth')),
+          },
+          { onConflict: 'endpoint' },
+        ),
+      ),
     );
     return 'bereit';
   } catch {
@@ -138,7 +145,7 @@ export async function mitteilungenAusschalten(): Promise<void> {
     const reg = await navigator.serviceWorker.ready;
     const abo = await reg.pushManager.getSubscription();
     if (!abo) return;
-    await hole().from('push_abos').delete().eq('endpoint', abo.endpoint);
+    await mitFrist(Promise.resolve(hole().from('push_abos').delete().eq('endpoint', abo.endpoint)));
     await abo.unsubscribe();
   } catch {
     /* Nichts abzumelden ist kein Fehler. */
