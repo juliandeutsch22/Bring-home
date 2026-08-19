@@ -3,7 +3,22 @@
 // Der Rest der Datei (Erlaubnis, Abo, Senden) hängt an Browser-APIs und einem
 // erreichbaren Server und wird deshalb hier nicht geprüft. Der Text hängt an
 // nichts — und er ist der Teil, den die andere Person wirklich liest.
-import { BITTE_NAMEN, bitteText } from './mitteilungen';
+import { BITTE_NAMEN, VAPID_OEFFENTLICH, bitteText } from './mitteilungen';
+
+describe('VAPID_OEFFENTLICH', () => {
+  // Warum das geprüft wird: der Schlüssel wird aus einem Terminal KOPIERT, und
+  // ein abgeschnittenes oder umgebrochenes Stück sieht auf den ersten Blick aus
+  // wie ein Schlüssel. Der Fehler zeigt sich sonst erst auf einem fremden
+  // Gerät, beim Anmelden zum Push — also genau dort, wo man ihn nicht sieht.
+  it('ist ein vollständiger P-256-Punkt in base64url', () => {
+    expect(VAPID_OEFFENTLICH).toMatch(/^[A-Za-z0-9_-]+$/);
+    const roh = Buffer.from(VAPID_OEFFENTLICH, 'base64url');
+    // 65 Bytes: ein Kennbyte (0x04, „unkomprimiert") plus zweimal 32 Byte
+    // Koordinate. Alles andere lehnt der Push-Dienst ab.
+    expect(roh.length).toBe(65);
+    expect(roh[0]).toBe(0x04);
+  });
+});
 
 describe('bitteText', () => {
   it('nennt die Sachen beim Namen, statt „es gibt Neues" zu raunen', () => {

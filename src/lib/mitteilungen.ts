@@ -27,7 +27,8 @@ import { mitFrist } from '@/lib/frist';
  * Erzeugen: `npx web-push generate-vapid-keys`. Der öffentliche kommt hierher,
  * der private in die Supabase-Secrets. NIE andersherum.
  */
-export const VAPID_OEFFENTLICH = '';
+export const VAPID_OEFFENTLICH =
+  'BENJXj52S3kIHX5qJJ3vRvBC1xjhM7zbZhejcK27dIdxByOVXE9-fI-Y8S9TkLvm2aZ71Td-SiwpvY7ZxflDFWQ';
 
 export type Lage =
   | 'bereit' // erlaubt und angemeldet
