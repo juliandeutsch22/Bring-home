@@ -181,13 +181,13 @@ export default function BittenScreen() {
           >
             <Send size={18} color={colors.accentA} strokeWidth={2.4} />
             <Type variant="label" tone="accentA">
-              {laeuft ? 'Einen Moment …' : 'Bitte verschicken'}
+              {laeuft ? 'Einen Moment …' : 'Erinnerung senden'}
             </Type>
           </PressableScale>
           <Type variant="caption" tone="text3" style={{ textAlign: 'center' }}>
             {gewaehlt.size > 0
               ? bitteText(offen.filter((a) => gewaehlt.has(a.id)).map((a) => a.text))
-              : 'Die Mitteilung nennt die Sachen beim Namen — die andere Person muss die App dafür nicht öffnen.'}
+              : 'Wähle die Dinge aus, die du dringend brauchst.'}
           </Type>
         </Reveal>
       )}
