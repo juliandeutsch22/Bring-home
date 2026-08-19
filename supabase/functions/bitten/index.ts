@@ -95,7 +95,7 @@ Deno.serve(async (anfrage) => {
   }
 
   webpush.setVapidDetails(absender, oeffentlich, privat);
-  const inhalt = JSON.stringify({ titel: titel ?? 'bring-home', text });
+  const inhalt = JSON.stringify({ titel: titel ?? 'Bringe Home', text });
 
   let gesendet = 0;
   const tot: string[] = [];

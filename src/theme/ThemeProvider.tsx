@@ -1,6 +1,6 @@
 // ThemeProvider.tsx — stellt das Farbschema bereit.
 //
-// bring-home ist AUSSCHLIESSLICH hell, unabhängig davon, was das Betriebssystem
+// „Bringe Home" ist AUSSCHLIESSLICH hell, unabhängig davon, was das Betriebssystem
 // meldet. Das ist eine Gestaltungsentscheidung, keine fehlende Funktion: die
 // Haut dieser App ist Marmor und Kalkstein, und ein Einkaufszettel ist ein
 // heller Zettel. Die dunkle Fassung war aus der Schwester-App mitgekommen und

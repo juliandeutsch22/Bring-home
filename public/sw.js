@@ -11,7 +11,10 @@
 //
 // Die Fassung im Namen ist der Schalter: eine neue Zahl heißt neuer Speicher,
 // und der alte wird beim Aktivieren abgeräumt.
-const FASSUNG = 'bring-home-v2';
+// Der Name bleibt `bring-home-…`, obwohl die App inzwischen „Bringe Home"
+// heißt: er ist ein Speicherschlüssel, kein Titel. Ihn umzubenennen räumte
+// nichts auf, was die neue Zahl nicht schon aufräumt.
+const FASSUNG = 'bring-home-v3';
 
 // Wo die App liegt. NICHT hart „/" — auf GitHub Pages ist es „/Bring-home/".
 // `registration.scope` weiß es, ohne dass es jemand doppelt pflegen muss.
@@ -50,7 +53,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('push', (e) => {
   // Ohne Nutzlast trotzdem etwas zeigen: eine stumme Mitteilung wäre ein
   // Klingeln ohne Tür. Kommt kaum vor, kostet aber nichts.
-  let inhalt = { titel: 'bring-home', text: 'Es gibt etwas Neues.' };
+  let inhalt = { titel: 'Bringe Home', text: 'Es gibt etwas Neues.' };
   try {
     if (e.data) inhalt = { ...inhalt, ...e.data.json() };
   } catch {

@@ -17,10 +17,14 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const app = JSON.parse(readFileSync('app.json', 'utf8'));
 const BASIS = (app.expo.experiments?.baseUrl ?? '').replace(/\/$/, '');
 const unter = (pfad) => `${BASIS}/${pfad.replace(/^\.?\//, '')}`;
+// Der Name kommt AUS `app.json`, wie der Pfad und die Grundfarbe auch. Zweimal
+// hingeschrieben liefe er beim nächsten Umbenennen auseinander — und die
+// Fassung, die auf dem Home-Bildschirm steht, wäre die vergessene.
+const NAME = app.expo.name;
 
 // ------------------------------------------------------------- Grundfarbe
 //
-// Nur EINE, weil die App nur eine Fassung hat: bring-home ist fest hell,
+// Nur EINE, weil die App nur eine Fassung hat: „Bringe Home" ist fest hell,
 // unabhängig von der Systemeinstellung (siehe `ThemeProvider.tsx`). Ein
 // dunkler Wert im Seitenkopf wäre hier kein Vorrat, sondern eine Falle — er
 // träfe den Rahmen um die App, während die App selbst hell bliebe. Genau
@@ -48,8 +52,8 @@ const GRUND = grundfarbe();
 // ------------------------------------------------------------- manifest.json
 
 const manifest = {
-  name: 'bring-home',
-  short_name: 'bring-home',
+  name: NAME,
+  short_name: NAME,
   description: 'Eine geteilte Einkaufsliste — plus Essenswünsche und Wohnungs-Aufgaben.',
   start_url: unter('./'),
   scope: unter('./'),
@@ -92,7 +96,7 @@ if (!html.includes('rel="manifest"')) {
       Rand unterhalb der Notch — heller Balken, dann eine fast schwarze App.
 
       Die Antwort darauf ist nicht „black-translucent", sondern der Verzicht auf
-      die dunkle Fassung: bring-home ist fest hell (siehe ThemeProvider.tsx).
+      die dunkle Fassung: „Bringe Home" ist fest hell (siehe ThemeProvider.tsx).
       Über einem cremefarbenen Zettel fällt ein heller Balken nicht mehr auf,
       und die Ziffern der Uhr bleiben dunkel und damit lesbar.
       „black-translucent" gäbe uns zwar die Fläche in die Hand, zeichnete Uhr
@@ -104,7 +108,7 @@ if (!html.includes('rel="manifest"')) {
       eigenen Abstand darauf.
     -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="bring-home" />
+    <meta name="apple-mobile-web-app-title" content="${NAME}" />
     <meta name="description" content="Eine geteilte Einkaufsliste — plus Essenswünsche und Wohnungs-Aufgaben." />
     <style id="grundflaeche">
       /*

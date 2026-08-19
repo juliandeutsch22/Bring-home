@@ -1,7 +1,7 @@
 // theme.tokens.ts — Single Source of Truth.
 //
 // Aus Stoa übernommen (siehe Style Guide, Teil A): die Skalen, die Schatten und
-// die eiserne Regel sind thematisch neutral. Was bring-home eigen ist, steht in
+// die eiserne Regel sind thematisch neutral. Was „Bringe Home" eigen ist, steht in
 // `skin.ts` — hier wird es nur eingesetzt.
 //
 // NIE Hex/px im Komponenten-Code hardcoden — immer diese Tokens importieren.

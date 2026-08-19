@@ -1,7 +1,13 @@
-# bring-home
+# Bringe Home
 
 Eine geteilte Einkaufsliste. Zwei Leute, eine Liste — was der eine hinzufügt,
 sieht der andere.
+
+> Verzeichnis, Repo und der Pfad `/Bring-home/` heißen weiter so, und das ist
+> Absicht: der Pfad steckt in jedem Symbol, das schon auf einem Home-Bildschirm
+> liegt, und die Speicherschlüssel jedes Geräts fangen mit `bring-home.` an. Sie
+> umzubenennen hieße, allen ihre gemerkte Liste samt Haushalts-Code zu nehmen —
+> für Zeilen, die niemand zu sehen bekommt.
 
 ## Stand
 

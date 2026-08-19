@@ -27,6 +27,12 @@ import { mitFrist } from '@/lib/frist';
  * Erzeugen: `npx web-push generate-vapid-keys`. Der öffentliche kommt hierher,
  * der private in die Supabase-Secrets. NIE andersherum.
  */
+/**
+ * Die fette Zeile der Mitteilung auf dem Sperrbildschirm. Sie sagt, WER da
+ * klopft — der Inhalt („Bitte auf dem Heimweg mitnehmen: …") steht darunter.
+ */
+export const APP_NAME = 'Bringe Home';
+
 export const VAPID_OEFFENTLICH =
   'BENJXj52S3kIHX5qJJ3vRvBC1xjhM7zbZhejcK27dIdxByOVXE9-fI-Y8S9TkLvm2aZ71Td-SiwpvY7ZxflDFWQ';
 
@@ -164,7 +170,7 @@ export async function bitteSenden(haushaltId: string, text: string): Promise<num
   // Beitreten, dieselbe Antwort.
   const { data, error } = await mitFrist(
     hole().functions.invoke('bitten', {
-      body: { haushaltId, titel: 'bring-home', text },
+      body: { haushaltId, titel: APP_NAME, text },
     }),
   );
   if (error) throw error;

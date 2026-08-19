@@ -1,6 +1,6 @@
 // skin.ts — DIE austauschbare Schicht.
 //
-// Alles, was bring-home von Stoa unterscheidet, steht hier: die zwei Akzente,
+// Alles, was „Bringe Home" von Stoa unterscheidet, steht hier: die zwei Akzente,
 // die Materialtöne, die Display-Schrift. Der Rest des Design-Systems
 // (Abstände, Radien, Meißel, Bewegung, Bauteile) ist thematisch neutral und
 // bleibt unangetastet.
