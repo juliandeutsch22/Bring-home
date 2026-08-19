@@ -14,7 +14,7 @@
 //    Übrige (umbenennen, Menge, löschen) liegt eine Ebene tiefer. Vorher war
 //    das Löschen ein einzelner Tipp direkt neben dem Abhaken; ein Danebengreifen
 //    war damit unwiderruflich.
-import { Link2, Pencil, ShoppingBasket } from 'lucide-react-native';
+import { Link2, Pencil, Send, ShoppingBasket } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
@@ -214,6 +214,25 @@ export default function EinkaufScreen() {
           </GlassPanel>
         )}
       </Reveal>
+
+      {/* Nur wenn es überhaupt jemanden zu bitten gibt: ohne geteilte Liste
+          hätte der Weg kein Ziel, und ein Knopf, der ins Leere führt, ist
+          schlimmer als keiner. */}
+      {geteilt && offen.length > 0 && (
+        <Reveal delay={100}>
+          <PressableScale
+            accessibilityLabel="Jemanden bitten, etwas mitzunehmen"
+            onPress={() => {
+              hapticSelect();
+              router.push('/bitten');
+            }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, alignSelf: 'flex-start', paddingVertical: Spacing.xs }}
+          >
+            <Send size={16} color={colors.accentA} strokeWidth={2.2} />
+            <Type variant="label" tone="accentA">Bitte jemanden, das mitzunehmen</Type>
+          </PressableScale>
+        </Reveal>
+      )}
 
       {imWagen.length > 0 && (
         <Reveal delay={120}>

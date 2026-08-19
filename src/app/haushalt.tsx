@@ -20,9 +20,30 @@ import { Seam } from '@/components/Seam';
 import { Type } from '@/components/Type';
 import { useHaushalt } from '@/data/haushalt';
 import { hapticSelect, hapticSuccess } from '@/lib/haptics';
+import {
+  mitteilungenAusschalten,
+  mitteilungenEinschalten,
+  mitteilungsLage,
+  type Lage,
+} from '@/lib/mitteilungen';
 import { webNoOutline } from '@/theme/layout';
 import { useColors } from '@/theme/ThemeProvider';
 import { R, Spacing, T } from '@/theme/theme.tokens';
+
+/**
+ * Was auf dem Bildschirm steht, für jede Lage genau ein Satz. Die unbequemen
+ * Fälle bekommen den ausführlichsten — dort braucht man ihn.
+ */
+const MITTEILUNGS_TEXT: Record<Lage, string> = {
+  bereit: 'Dieses Gerät bekommt Bescheid, wenn dich jemand bittet, etwas mitzunehmen.',
+  fragen: 'Damit die andere Person dich bitten kann, etwas mitzunehmen, muss dieses Gerät Mitteilungen erlauben.',
+  verweigert:
+    'Mitteilungen sind für diese App abgelehnt. Umkehren geht nur in den Einstellungen des Geräts, nicht mehr von hier aus.',
+  nurAufDemHomescreen:
+    'Auf dem iPhone gibt es Mitteilungen nur, wenn die App auf dem Home-Bildschirm liegt — im Browser-Tab nicht. Über „Teilen" → „Zum Home-Bildschirm" hinzufügen und die App von dort öffnen.',
+  nichtEingerichtet: 'Der Versand ist noch nicht eingerichtet (es fehlt der VAPID-Schlüssel).',
+  unmoeglich: 'Dieser Browser kann keine Mitteilungen.',
+};
 
 export default function HaushaltScreen() {
   const colors = useColors();
@@ -30,6 +51,7 @@ export default function HaushaltScreen() {
   const { id, code, stand, meldung, gruenden, beitreten, verlassen } = useHaushalt();
   const [eingabe, setEingabe] = useState('');
   const [kopiert, setKopiert] = useState(false);
+  const [lage, setLage] = useState<Lage>(() => mitteilungsLage());
 
   const laedt = stand === 'laedt';
 
@@ -197,6 +219,48 @@ export default function HaushaltScreen() {
           </PressableScale>
         </GlassPanel>
       </Reveal>
+
+      {/* Mitteilungen richtet JEDER für sich ein — die Erlaubnis gilt pro
+          Gerät, und bekommen muss sie der EMPFÄNGER. Wer nur schickt, braucht
+          sie nicht; wer gebeten werden will, schon. Deshalb steht der Schalter
+          hier und nicht auf dem Bitten-Bildschirm. */}
+      {id && (
+        <Reveal delay={100}>
+          <GlassPanel>
+            <Type variant="eyebrow" tone="text3">Mitteilungen</Type>
+            <Type variant="body" tone="text2" style={{ marginTop: Spacing.xs }}>
+              {MITTEILUNGS_TEXT[lage]}
+            </Type>
+            {(lage === 'fragen' || lage === 'bereit') && (
+              <>
+                <Seam marginVertical={Spacing.md} />
+                <PressableScale
+                  accessibilityLabel={lage === 'bereit' ? 'Mitteilungen ausschalten' : 'Mitteilungen einschalten'}
+                  onPress={() => {
+                    hapticSelect();
+                    void (async () => {
+                      if (lage === 'bereit') {
+                        await mitteilungenAusschalten();
+                        setLage(mitteilungsLage());
+                        return;
+                      }
+                      // Aus dem Tipp heraus fragen, nie beim Start: ein Dialog
+                      // ohne erkennbaren Anlass wird weggetippt, und danach ist
+                      // die Tür für immer zu.
+                      setLage(await mitteilungenEinschalten(id));
+                    })();
+                  }}
+                  style={{ alignSelf: 'flex-start' }}
+                >
+                  <Type variant="label" tone={lage === 'bereit' ? 'accentB' : 'accentA'}>
+                    {lage === 'bereit' ? 'Nicht mehr benachrichtigen' : 'Mitteilungen erlauben'}
+                  </Type>
+                </PressableScale>
+              </>
+            )}
+          </GlassPanel>
+        </Reveal>
+      )}
 
       {id && (
         <Reveal delay={120}>

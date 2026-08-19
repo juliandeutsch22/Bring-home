@@ -10,6 +10,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 
+import { mitFrist } from '@/lib/frist';
+
 import { standVergessen } from './abgleich';
 import { angemeldet, hole } from './zugang';
 
@@ -42,28 +44,6 @@ async function merken(g: Gemerkt | null): Promise<void> {
  */
 export function normalisiereCode(roh: string): string {
   return roh.trim().toUpperCase().replace(/[\s-]/g, '');
-}
-
-/** Nach so vielen Millisekunden gilt der Server als nicht erreichbar. */
-export const FRIST_MS = 8000;
-
-/**
- * Ein Versprechen mit Frist.
- *
- * Ohne das gibt es einen Zustand, aus dem man nicht mehr herauskommt: ein
- * Netzwerk, das nicht ablehnt, sondern SCHWEIGT (Hotelportal, Funkloch mit
- * Balken, blockierender Zwischenserver). `fetch` wartet dann minutenlang, und
- * auf dem Bildschirm steht „Einen Moment …", bis jemand die App wegwischt.
- * Eine abgelaufene Frist ist eine Antwort; keine Antwort ist keine.
- */
-export function mitFrist<T>(versprechen: Promise<T>, frist = FRIST_MS): Promise<T> {
-  return new Promise<T>((erfuellen, ablehnen) => {
-    const uhr = setTimeout(() => ablehnen(new Error('Der Server antwortet nicht.')), frist);
-    versprechen.then(
-      (w) => { clearTimeout(uhr); erfuellen(w); },
-      (e) => { clearTimeout(uhr); ablehnen(e); },
-    );
-  });
 }
 
 export const useHaushalt = create<Laden>((setze) => ({

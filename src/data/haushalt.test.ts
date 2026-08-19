@@ -4,7 +4,7 @@
 // falsche Richtung zeigt, kostet mehr Zeit als gar keine. Genau das ist einmal
 // passiert — „Keine Verbindung zum Server", während die Verbindung tadellos war
 // und nur ein Schalter im Dashboard fehlte.
-import { lesbar, mitFrist, normalisiereCode } from './haushalt';
+import { lesbar, normalisiereCode } from './haushalt';
 
 describe('normalisiereCode', () => {
   it('liest großzügig — der Code wird vorgelesen und abgetippt', () => {
@@ -73,21 +73,5 @@ describe('lesbar', () => {
 
   it('gibt zur Not das ganze Objekt aus, statt zu schweigen', () => {
     expect(lesbar({ seltsam: true })).toContain('seltsam');
-  });
-});
-
-describe('mitFrist', () => {
-  it('gibt durch, was rechtzeitig kommt', async () => {
-    await expect(mitFrist(Promise.resolve('da'), 50)).resolves.toBe('da');
-  });
-
-  it('bricht ab, wenn nie etwas kommt', async () => {
-    // Der eigentliche Fall: ein Netz, das nicht ablehnt, sondern schweigt.
-    // Ohne Frist stünde „Einen Moment …" bis zum Wegwischen der App.
-    await expect(mitFrist(new Promise(() => {}), 20)).rejects.toThrow('antwortet nicht');
-  });
-
-  it('reicht einen echten Fehler unverändert weiter', async () => {
-    await expect(mitFrist(Promise.reject(new Error('abgelehnt')), 50)).rejects.toThrow('abgelehnt');
   });
 });

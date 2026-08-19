@@ -52,6 +52,9 @@ const griff = async (label) => {
   return e;
 };
 const tippe = async (l) => { const e = await griff(l); await e.click(); await p.waitForTimeout(600); };
+/** Wie oft gibt es dieses Label? Am `innerText` wäre das nicht ablesbar. */
+const zeilen = (label) =>
+  p.evaluate((l) => [...document.querySelectorAll('[aria-label]')].filter((e) => e.getAttribute('aria-label') === l).length, label);
 const schreibe = async (l, v) => { const e = await griff(l); await e.click(); await e.fill(v); await e.press('Enter'); await p.waitForTimeout(900); };
 
 console.log('\n1) Erst etwas auf die Liste, damit man sieht, ob es überlebt');
@@ -91,6 +94,52 @@ await p.waitForTimeout(900);
 t = await text();
 pruef('die Einkaufsliste ist wieder da', t.includes('Einkauf'), t.slice(0, 300));
 pruef('und der Bestand ist unangetastet', t.includes('Milch') && t.includes('1 Sache fehlt'), t.slice(0, 400));
+
+console.log('\n5) Bitte mitnehmen — der Weg und die ehrlichen Absagen');
+// Ohne geteilte Liste hat die Bitte kein Ziel; der Einstieg gehört dann NICHT
+// auf den Bildschirm. Hier ist noch nichts geteilt.
+pruef('ohne geteilte Liste kein Einstieg', (await zeilen('Jemanden bitten, etwas mitzunehmen')) === 0);
+
+// Haushalt vortäuschen (ohne Server) und nachsehen, ob der Weg erscheint.
+await p.evaluate(() => {
+  window.localStorage.setItem('bring-home.haushalt', JSON.stringify({ id: 'test-haushalt', code: 'K7MP2QRS' }));
+});
+await p.reload({ waitUntil: 'networkidle' });
+await p.waitForTimeout(1800);
+await schreibe('Etwas hinzufügen', 'Milch');
+pruef('mit geteilter Liste steht der Einstieg da', (await zeilen('Jemanden bitten, etwas mitzunehmen')) === 1);
+
+await tippe('Jemanden bitten, etwas mitzunehmen');
+t = await text();
+pruef('der Bitten-Bildschirm ist da', enthaelt(t, 'Bitte mitnehmen'), t.slice(0, 400));
+pruef('und sagt, dass noch nichts gewählt ist', enthaelt(t, 'Wähle aus'), t.slice(0, 400));
+
+await tippe('Milch auswählen');
+t = await text();
+pruef('das Ausgewählte wird gezählt', enthaelt(t, '1 Sache ausgewählt'), t.slice(0, 400));
+// Der Satz, der ankommt, steht schon VOR dem Senden da — man schickt nichts,
+// was man nicht gelesen hat.
+pruef('die Vorschau nennt die Sache beim Namen',
+  enthaelt(t, 'Bitte auf dem Heimweg mitnehmen: Milch'), t.slice(0, 600));
+
+await tippe('Bitte verschicken');
+// Länger als die Frist in `frist.ts` — auch hier ist der interessante Fall das
+// Netz, das nicht ablehnt, sondern schweigt.
+await p.waitForTimeout(9500);
+t = await text();
+// Ohne erreichbaren Server MUSS eine lesbare Absage kommen — und keine, die
+// „verschickt" behauptet.
+pruef('ein Fehlschlag wird zugegeben',
+  enthaelt(t, 'nicht geklappt') || enthaelt(t, 'noch nicht eingerichtet') || enthaelt(t, 'Niemand hat Mitteilungen'),
+  t.slice(0, 700));
+pruef('und behauptet NICHT, verschickt zu haben', !enthaelt(t, 'Verschickt.'), t.slice(0, 500));
+// Der Knopf muss wieder ansprechbar sein — ein „Einen Moment …", das stehen
+// bleibt, ist eine App, die hängt.
+pruef('der Knopf steht wieder bereit', !enthaelt(t, 'Einen Moment'), t.slice(0, 500));
+
+await tippe('Zurück');
+await p.waitForTimeout(800);
+pruef('die Einkaufsliste ist danach unversehrt', (await text()).includes('Milch'));
 
 console.log(`\nSeitenfehler: ${fehler.length === 0 ? 'keine' : fehler.join(' | ')}`);
 console.log(`${ok} ok, ${bad} fehlgeschlagen`);

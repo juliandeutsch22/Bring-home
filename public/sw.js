@@ -11,7 +11,7 @@
 //
 // Die Fassung im Namen ist der Schalter: eine neue Zahl heißt neuer Speicher,
 // und der alte wird beim Aktivieren abgeräumt.
-const FASSUNG = 'bring-home-v1';
+const FASSUNG = 'bring-home-v2';
 
 // Wo die App liegt. NICHT hart „/" — auf GitHub Pages ist es „/Bring-home/".
 // `registration.scope` weiß es, ohne dass es jemand doppelt pflegen muss.
@@ -35,6 +35,51 @@ self.addEventListener('activate', (e) => {
     (async () => {
       for (const name of await caches.keys()) if (name !== FASSUNG) await caches.delete(name);
       await self.clients.claim();
+    })(),
+  );
+});
+
+// ------------------------------------------------------------ Mitteilungen
+//
+// „Bitte auf dem Heimweg mitnehmen: Milch, Brot." Der Absender wählt die Punkte
+// aus, eine Supabase Edge Function verschickt, hier kommt es an.
+//
+// Auf iOS geht das NUR, wenn die App auf dem Home-Bildschirm liegt — in einem
+// Safari-Tab gibt es keine Mitteilungen. Das ist Apples Regel, kein Versäumnis
+// von uns; die App sagt es auf dem Teilen-Bildschirm auch so.
+self.addEventListener('push', (e) => {
+  // Ohne Nutzlast trotzdem etwas zeigen: eine stumme Mitteilung wäre ein
+  // Klingeln ohne Tür. Kommt kaum vor, kostet aber nichts.
+  let inhalt = { titel: 'bring-home', text: 'Es gibt etwas Neues.' };
+  try {
+    if (e.data) inhalt = { ...inhalt, ...e.data.json() };
+  } catch {
+    /* Unlesbare Nutzlast — dann eben der Standardtext. */
+  }
+  e.waitUntil(
+    self.registration.showNotification(inhalt.titel, {
+      body: inhalt.text,
+      icon: unter('icons/icon-192.png'),
+      badge: unter('icons/icon-192.png'),
+      // Gleiche Kennung = die neue Mitteilung ERSETZT die alte. Zwei Bitten
+      // hintereinander sollen nicht zwei Zeilen im Sperrbildschirm werden.
+      tag: 'bring-home-bitte',
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(
+    (async () => {
+      // Ein schon offenes Fenster holen, statt ein zweites zu öffnen — sonst
+      // stehen nach drei Bitten drei Kopien der App im Umschalter.
+      const fenster = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const f of fenster) {
+        if (f.url.startsWith(WURZEL.toString()) && 'focus' in f) return f.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(unter('./'));
+      return undefined;
     })(),
   );
 });
