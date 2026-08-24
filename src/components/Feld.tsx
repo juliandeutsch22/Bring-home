@@ -21,6 +21,7 @@ export function Feld({
   wert,
   onSichern,
   stil,
+  nackt = false,
 }: {
   label: string;
   platzhalter: string;
@@ -28,6 +29,12 @@ export function Feld({
   onSichern: (v: string | null) => void;
   /** Für nebeneinanderliegende Felder (Text `flex: 1`, Menge feste Breite). */
   stil?: ViewStyle;
+  /**
+   * Ohne eigene Hülle — für den Einsatz IN einer `Mulde`, die die Vertiefung
+   * schon trägt. Ein gerundetes Feld in einer gerundeten Mulde wären zwei
+   * Vertiefungen ineinander, und die zweite hätte keine Bedeutung.
+   */
+  nackt?: boolean;
 }) {
   const colors = useColors();
   const [entwurf, setEntwurf] = useState(wert ?? '');
@@ -37,6 +44,31 @@ export function Feld({
     if (sauber === (wert ?? '')) return;
     onSichern(sauber || null);
   };
+
+  const eingabe = (
+    <TextInput
+      accessibilityLabel={label}
+      value={entwurf}
+      onChangeText={setEntwurf}
+      onSubmitEditing={sichern}
+      onBlur={sichern}
+      placeholder={platzhalter}
+      placeholderTextColor={colors.text3}
+      returnKeyType="done"
+      style={[
+        { fontSize: T.md, color: colors.text, minHeight: 22 },
+        nackt
+          // In der Mulde steht der Wert RECHTS und die Bezeichnung links —
+          // wie in einer Einstellungsliste. Ohne eigenes Polster, das trägt
+          // die Zeile der Mulde.
+          ? { width: '100%', textAlign: 'right' }
+          : { flex: 1, paddingVertical: Spacing.sm },
+        webNoOutline,
+      ]}
+    />
+  );
+
+  if (nackt) return eingabe;
 
   return (
     <View
@@ -54,17 +86,7 @@ export function Feld({
         stil,
       ]}
     >
-      <TextInput
-        accessibilityLabel={label}
-        value={entwurf}
-        onChangeText={setEntwurf}
-        onSubmitEditing={sichern}
-        onBlur={sichern}
-        placeholder={platzhalter}
-        placeholderTextColor={colors.text3}
-        returnKeyType="done"
-        style={[{ flex: 1, fontSize: T.md, color: colors.text, paddingVertical: Spacing.sm, minHeight: 22 }, webNoOutline]}
-      />
+      {eingabe}
     </View>
   );
 }

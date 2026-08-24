@@ -38,6 +38,7 @@ export function Wahlzeile<T>({
   /** Welcher Wert „nichts gewählt" bedeutet — er wird still dargestellt. */
   leer,
   accessibilityPraefix,
+  nackt = false,
 }: {
   label: string;
   optionen: readonly Wahl<T>[];
@@ -46,6 +47,11 @@ export function Wahlzeile<T>({
   leer?: T;
   /** Titel der Zeile, damit mehrere Wahlzeilen unterscheidbar bleiben. */
   accessibilityPraefix?: string;
+  /**
+   * Ohne eigene Hülle und ohne Bezeichnung — für den Einsatz IN einer
+   * `Mulde`, die beides schon trägt. Übrig bleibt der Wert allein.
+   */
+  nackt?: boolean;
 }) {
   const colors = useColors();
   const stelle = Math.max(0, optionen.findIndex((o) => o.wert === wert));
@@ -66,20 +72,26 @@ export function Wahlzeile<T>({
       accessibilityHint="Antippen wechselt zur nächsten Möglichkeit"
       onPress={weiter}
       pressedScale={0.99}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.sm,
-        borderRadius: R.lg,
-        borderWidth: 1,
-        borderColor: colors.chipBorder,
-        backgroundColor: colors.sunk,
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.sm,
-        minHeight: 38,
-      }}
+      style={
+        nackt
+          ? { alignSelf: 'flex-end' }
+          : {
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: Spacing.sm,
+              borderRadius: R.lg,
+              borderWidth: 1,
+              borderColor: colors.chipBorder,
+              backgroundColor: colors.sunk,
+              paddingHorizontal: Spacing.md,
+              paddingVertical: Spacing.sm,
+              minHeight: 38,
+            }
+      }
     >
-      <Type variant="body" tone="text3" style={{ flex: 1 }} numberOfLines={1}>{label}</Type>
+      {!nackt && (
+        <Type variant="body" tone="text3" style={{ flex: 1 }} numberOfLines={1}>{label}</Type>
+      )}
       <View>
         {/* Gesetzt trägt der Wert die Handlungsfarbe, ungesetzt die stille —
             wie ein gefülltes gegen ein leeres Feld. */}

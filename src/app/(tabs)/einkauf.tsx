@@ -23,6 +23,7 @@ import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile } from '@/components/Eingabezeile';
 import { Feld } from '@/components/Feld';
 import { Haken } from '@/components/Haken';
+import { Mulde, MuldenHandlung, MuldenZeile } from '@/components/Mulde';
 import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PressableScale } from '@/components/PressableScale';
@@ -173,38 +174,42 @@ export default function EinkaufScreen() {
 
                 {auf && (
                   <Faltet>
-                    <View style={{ gap: Spacing.sm, paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
-                      <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                    <View style={{ paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
+                      <Mulde>
                         {/* Der Name darf nicht leer werden — ein namenloser
                             Punkt wäre auf der Liste nicht wiederzufinden. */}
-                        <Feld
-                          label={`${a.text} umbenennen`}
-                          platzhalter="Was?"
-                          wert={a.text}
-                          stil={{ flex: 1 }}
-                          onSichern={(v) => v && aendern.mutate({ id: a.id, patch: { text: v } })}
+                        <MuldenZeile label="Was">
+                          <Feld
+                            nackt
+                            label={`${a.text} umbenennen`}
+                            platzhalter="Was?"
+                            wert={a.text}
+                            onSichern={(v) => v && aendern.mutate({ id: a.id, patch: { text: v } })}
+                          />
+                        </MuldenZeile>
+                        <MuldenZeile label="Menge">
+                          <Feld
+                            nackt
+                            label={`Menge von ${a.text}`}
+                            platzhalter="egal"
+                            wert={a.menge}
+                            onSichern={(v) => aendern.mutate({ id: a.id, patch: { menge: v } })}
+                          />
+                        </MuldenZeile>
+                        {/* Die destruktive Handlung bekommt eine EIGENE Zeile in
+                            derselben Mulde, statt darunter im Nichts zu hängen.
+                            Ein Tipp, keine Rückfrage: hierher kommt man nur über
+                            den Stift, das Löschen ist also schon der zweite. */}
+                        <MuldenHandlung
+                          label="Von der Liste nehmen"
+                          accessibilityLabel={`${a.text} entfernen`}
+                          onPress={() => {
+                            hapticSelect();
+                            setBearbeitet(null);
+                            loeschen.mutate(a.id);
+                          }}
                         />
-                        <Feld
-                          label={`Menge von ${a.text}`}
-                          platzhalter="Menge"
-                          wert={a.menge}
-                          stil={{ width: 96 }}
-                          onSichern={(v) => aendern.mutate({ id: a.id, patch: { menge: v } })}
-                        />
-                      </View>
-                      {/* Ein Tipp, keine Rückfrage: hierher kommt man nur über
-                          den Stift, das Löschen ist also schon der zweite Tipp. */}
-                      <PressableScale
-                        accessibilityLabel={`${a.text} entfernen`}
-                        onPress={() => {
-                          hapticSelect();
-                          setBearbeitet(null);
-                          loeschen.mutate(a.id);
-                        }}
-                        style={{ alignSelf: 'flex-start', paddingVertical: Spacing.xs }}
-                      >
-                        <Type variant="label" tone="accentB">Von der Liste nehmen</Type>
-                      </PressableScale>
+                      </Mulde>
                     </View>
                   </Faltet>
                 )}

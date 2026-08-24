@@ -24,6 +24,7 @@ import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile } from '@/components/Eingabezeile';
 import { Feld } from '@/components/Feld';
 import { Haken } from '@/components/Haken';
+import { Mulde, MuldenZeile } from '@/components/Mulde';
 import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PressableScale } from '@/components/PressableScale';
@@ -154,39 +155,48 @@ export default function WohnungScreen() {
 
         {aufgeklappt && (
           <Faltet>
-            <View style={{ gap: Spacing.sm, paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
-              <Feld
-                label={`Wer kümmert sich um ${a.titel}`}
-                platzhalter="Wer macht das?"
-                wert={a.person}
-                onSichern={(v) => aendern.mutate({ id: a.id, patch: { person: v } })}
-              />
-              <Feld
-                label={`Worauf ${a.titel} wartet`}
-                platzhalter="Wartet auf … (dann ruht sie)"
-                wert={a.wartetAuf}
-              onSichern={(v) => aendern.mutate({ id: a.id, patch: { wartetAuf: v } })}
-              />
-              {/* Dritte Zeile in derselben Form wie die zwei Felder darüber.
-                  Fünf Pillen zeigten alle Möglichkeiten gleichzeitig, brachen
-                  auf zwei Reihen um und machten aus dem Editor eine
-                  Schalttafel. Hier steht nur, was gilt. */}
-              <Wahlzeile
-                label="Kommt wieder"
-                accessibilityPraefix={a.titel}
-                optionen={RHYTHMEN.map((r) => ({ label: r.label, wert: r.tage }))}
-                wert={a.rhythmusTage ?? null}
-                leer={null}
-                onWert={(tage) =>
-                  aendern.mutate({
-                    id: a.id,
-                    // Den Rhythmus abzuschalten muss auch das Ruhen beenden —
-                    // sonst bliebe eine Aufgabe unsichtbar liegen, die gar
-                    // nicht mehr wiederkehrt.
-                    patch: tage === null ? { rhythmusTage: null, faelligAb: null } : { rhythmusTage: tage },
-                  })
-                }
-              />
+            {/* Die Mulde sitzt unter dem TITEL, nicht unter dem Haken: sie
+                beschreibt die Aufgabe, nicht ihre Erledigung. */}
+            <View style={{ paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
+              <Mulde>
+                <MuldenZeile label="Wer macht das">
+                  <Feld
+                    nackt
+                    label={`Wer kümmert sich um ${a.titel}`}
+                    platzhalter="niemand"
+                    wert={a.person}
+                    onSichern={(v) => aendern.mutate({ id: a.id, patch: { person: v } })}
+                  />
+                </MuldenZeile>
+                <MuldenZeile label="Wartet auf">
+                  <Feld
+                    nackt
+                    label={`Worauf ${a.titel} wartet`}
+                    platzhalter="nichts"
+                    wert={a.wartetAuf}
+                    onSichern={(v) => aendern.mutate({ id: a.id, patch: { wartetAuf: v } })}
+                  />
+                </MuldenZeile>
+                <MuldenZeile label="Kommt wieder" letzte>
+                  <Wahlzeile
+                    nackt
+                    label="Kommt wieder"
+                    accessibilityPraefix={a.titel}
+                    optionen={RHYTHMEN.map((r) => ({ label: r.label, wert: r.tage }))}
+                    wert={a.rhythmusTage ?? null}
+                    leer={null}
+                    onWert={(tage) =>
+                      aendern.mutate({
+                        id: a.id,
+                        // Den Rhythmus abzuschalten muss auch das Ruhen
+                        // beenden — sonst bliebe eine Aufgabe unsichtbar
+                        // liegen, die gar nicht mehr wiederkehrt.
+                        patch: tage === null ? { rhythmusTage: null, faelligAb: null } : { rhythmusTage: tage },
+                      })
+                    }
+                  />
+                </MuldenZeile>
+              </Mulde>
             </View>
           </Faltet>
         )}
