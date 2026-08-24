@@ -30,6 +30,11 @@ export type GlassVariant = 'card' | 'pill' | 'bar';
 // Steintafeln sind kantiger als Glas-Slabs.
 const DEFAULT_RADIUS: Record<GlassVariant, number> = { card: R.xl, pill: R.pill, bar: R.lg };
 
+// Die natürliche Höhe des Blattes. Eine Kachel bleibt damit fast 1:1 —
+// waagrecht wird sie auf die Plattenbreite gebracht (400 → ~382, also kaum),
+// senkrecht gar nicht.
+const KACHEL_HOEHE = 300;
+
 const MARBLE_LIGHT = require('../../assets/images/marble-light.jpg');
 const MARBLE_DARK = require('../../assets/images/marble-dark.jpg');
 
@@ -45,6 +50,54 @@ export type GlassProps = {
   contentStyle?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
 };
+
+/**
+ * Die Marmorfläche — GEKACHELT, nicht gestreckt.
+ *
+ * Zwei Fassungen sind hier gescheitert, beide sichtbar:
+ *
+ *  · `absoluteFill` auf dem Bild GRIFF NICHT. Gemessen war jeder Träger auf
+ *    der Seite genau 400x300 — die Maße des Blattes —, egal wie hoch die
+ *    Platte war. Auf allem über 300 px hörte die Maserung mittendrin auf, und
+ *    quer durch die Platte lief eine Kante.
+ *  · Das Blatt dann auf 100 % zu strecken deckte zwar, machte das Korn aber
+ *    matschig: Auf einer 535 px hohen Platte wird ein 300 px hohes Blatt
+ *    1,8-fach gezogen. Genau davor warnt der Kopf dieser Datei — das Blatt
+ *    muss klein bleiben, damit das Korn die Skalierung überlebt.
+ *
+ * Also weder das eine noch das andere, sondern so viele Blätter
+ * untereinander, wie die Höhe braucht — jedes in seiner eigenen Größe.
+ *
+ * Jedes ZWEITE ist senkrecht gespiegelt. Das ist der Kniff, der die Naht
+ * verschwinden lässt: An der Stoßkante treffen dadurch identische Pixelreihen
+ * aufeinander, es gibt also gar keinen Sprung. Ohne die Spiegelung liefe alle
+ * 300 px ein sichtbarer Strich durch den Stein.
+ */
+function Marmor({ dunkel }: { dunkel: boolean }) {
+  const [hoehe, setHoehe] = React.useState(0);
+  const blatt = dunkel ? MARBLE_DARK : MARBLE_LIGHT;
+  const anzahl = Math.max(1, Math.ceil(hoehe / KACHEL_HOEHE));
+
+  return (
+    <View
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}
+      pointerEvents="none"
+      onLayout={(e) => setHoehe(e.nativeEvent.layout.height)}
+    >
+      {Array.from({ length: anzahl }, (_, i) => (
+        <Image
+          key={i}
+          source={blatt}
+          resizeMode="cover"
+          style={[
+            { width: '100%', height: KACHEL_HOEHE },
+            i % 2 === 1 ? { transform: [{ scaleY: -1 }] } : null,
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
 
 export function Glass({ variant = 'card', radius, tint, style, contentStyle, children }: GlassProps) {
   const scheme = useScheme();
@@ -82,21 +135,7 @@ export function Glass({ variant = 'card', radius, tint, style, contentStyle, chi
         style,
       ]}
     >
-      {showTexture && (
-        // AUSDRÜCKLICH 100 % statt `absoluteFill` auf dem Bild: Gemessen war
-        // jeder Marmor-Träger auf der Seite genau 400x300 — die Maße des
-        // Blattes — egal wie hoch die Platte war. Auf allem, was höher als
-        // 300 px wird (ein aufgeklapptes Gericht mit offenem Zutaten-Editor),
-        // hörte die Maserung deshalb mittendrin auf, und quer durch die Platte
-        // lief eine sichtbare Kante.
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="none">
-          <Image
-            source={isDark ? MARBLE_DARK : MARBLE_LIGHT}
-            resizeMode="cover"
-            style={{ width: '100%', height: '100%' }}
-          />
-        </View>
-      )}
+      {showTexture && <Marmor dunkel={isDark} />}
       {showChisel && (
         <>
           <View

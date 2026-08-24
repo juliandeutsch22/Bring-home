@@ -63,9 +63,17 @@ export function Mulde({ children }: { children: React.ReactNode }) {
   const schatten = isDark ? 'rgba(0,0,0,0.45)' : 'rgba(52,46,32,0.13)';
   const schattenWeich = isDark ? 'rgba(0,0,0,0.28)' : 'rgba(52,46,32,0.075)';
   const licht = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.55)';
-  // Trifft über der Platte fast genau den `sunk`-Ton (gerechnet: 0,085 auf
-  // #FBF7EC ergibt ~#EBE6D6), lässt dabei aber das Korn stehen.
-  const tiefe = isDark ? 'rgba(0,0,0,0.28)' : 'rgba(52,46,32,0.085)';
+  // DEUTLICH leiser als der `sunk`-Ton, aus dem sie gerechnet war.
+  //
+  // 0,085 traf zwar rechnerisch die alte Tönung, aber die lag auf einer
+  // NACKTEN Fläche; hier liegt sie über dem Marmor und verdunkelt ihn
+  // zusätzlich. Vor allem füllt die Mulde bei einem aufgeklappten Gericht fast
+  // die ganze Platte — ein großes, gleichmäßig dunkles Rechteck darin liest
+  // sich als eingesetztes Fremdteil, nicht als Vertiefung.
+  //
+  // Eine Mulde nimmt LICHT WEG, sie legt keine Farbe auf. Die Tiefe trägt der
+  // Schlagschatten oben, nicht die Füllung.
+  const tiefe = isDark ? 'rgba(0,0,0,0.16)' : 'rgba(52,46,32,0.038)';
 
   return (
     // DURCHSCHEINEND statt eigener Fläche — und das ist der Kern der Sache.
