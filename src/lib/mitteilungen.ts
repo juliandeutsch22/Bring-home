@@ -187,11 +187,26 @@ export async function bitteSenden(haushaltId: string, text: string): Promise<num
  */
 export const BITTE_NAMEN = 4;
 
-export function bitteText(namen: string[]): string {
+/** Woraus die Bitte stammt. Der Wagen bittet anders als die Wohnung. */
+export type Bereich = 'einkauf' | 'wohnung';
+
+/**
+ * Die Einleitung, je Bereich eine.
+ *
+ * Beide bleiben BITTEN und werden keine Anweisungen: „Bitte übernimm, wenn du
+ * Zeit hast" statt „Mach den Abwasch". Eine Mitteilung, die auf dem
+ * Sperrbildschirm einer Person aufpoppt, mit der man zusammenlebt, verträgt
+ * keinen Befehlston — und der Zusatz „wenn du Zeit hast" ist der Unterschied
+ * zwischen einer Bitte und einer Zuweisung.
+ */
+export const EINLEITUNG: Record<Bereich, string> = {
+  einkauf: 'Bitte auf dem Heimweg mitnehmen',
+  wohnung: 'Bitte übernimm, wenn du Zeit hast',
+};
+
+export function bitteText(namen: string[], bereich: Bereich = 'einkauf'): string {
   const gezeigt = namen.slice(0, BITTE_NAMEN);
   const rest = namen.length - gezeigt.length;
-  const liste = gezeigt.join(', ');
-  return rest > 0
-    ? `Bitte auf dem Heimweg mitnehmen: ${liste} und ${rest} mehr`
-    : `Bitte auf dem Heimweg mitnehmen: ${liste}`;
+  const satz = `${EINLEITUNG[bereich]}: ${gezeigt.join(', ')}`;
+  return rest > 0 ? `${satz} und ${rest} mehr` : satz;
 }

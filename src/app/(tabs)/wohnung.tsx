@@ -10,7 +10,8 @@
 //  · „Warten auf" für alles, was bei jemand anderem liegt (Hausverwaltung,
 //    Handwerker). Es verschwindet damit aus dem Offenen, ohne verloren zu
 //    gehen — und mahnt nicht, weil man selbst nichts tun kann.
-import { Hammer, PauseCircle, Trash2 } from 'lucide-react-native';
+import { Hammer, PauseCircle, Send, Trash2 } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
@@ -26,6 +27,7 @@ import { Screen } from '@/components/Screen';
 import { Seam } from '@/components/Seam';
 import { EmptyState } from '@/components/StateView';
 import { Type } from '@/components/Type';
+import { useHaushalt } from '@/data/haushalt';
 import type { Aufgabe } from '@/data/types';
 import {
   useAufgabeAendern,
@@ -42,6 +44,8 @@ import { Spacing } from '@/theme/theme.tokens';
 
 export default function WohnungScreen() {
   const colors = useColors();
+  const router = useRouter();
+  const geteilt = useHaushalt((s) => s.id !== null);
   const { data: aufgaben } = useAufgaben();
   const anlegen = useAufgabeAnlegen();
   const umschalten = useAufgabeUmschalten();
@@ -184,6 +188,28 @@ export default function WohnungScreen() {
           </GlassPanel>
         )}
       </Reveal>
+
+      {/* Wie im Einkauf: nur wenn es überhaupt jemanden zu bitten gibt. Ohne
+          geteilte Liste hätte der Weg kein Ziel, und ein Knopf, der ins Leere
+          führt, ist schlimmer als keiner.
+
+          Gebeten wird nur um OFFENES — Wartendes liegt bei jemand Drittem, da
+          hilft kein Mitbewohner. */}
+      {geteilt && offen.length > 0 && (
+        <Reveal delay={100}>
+          <PressableScale
+            accessibilityLabel="Jemanden bitten, etwas zu übernehmen"
+            onPress={() => {
+              hapticSelect();
+              router.push('/bitten?was=wohnung');
+            }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, alignSelf: 'flex-start', paddingVertical: Spacing.xs }}
+          >
+            <Send size={16} color={colors.accentA} strokeWidth={2.2} />
+            <Type variant="label" tone="accentA">Soll das jemand übernehmen?</Type>
+          </PressableScale>
+        </Reveal>
+      )}
 
       {/* Wartendes steht unter dem Offenen und eingeklappt: es ist da, aber es
           ist nichts, woran man gerade arbeiten kann. */}

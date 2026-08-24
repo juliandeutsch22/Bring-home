@@ -56,6 +56,21 @@ const tippe = async (l) => { const e = await griff(l); await e.click(); await p.
 const zeilen = (label) =>
   p.evaluate((l) => [...document.querySelectorAll('[aria-label]')].filter((e) => e.getAttribute('aria-label') === l).length, label);
 const schreibe = async (l, v) => { const e = await griff(l); await e.click(); await e.fill(v); await e.press('Enter'); await p.waitForTimeout(900); };
+/** In einen anderen Tab wechseln — über die Mitte der Schaltfläche, weil die
+ *  Leiste über dem Inhalt liegt und ein Klick auf das Element sonst abgefangen
+ *  werden kann. */
+const tab = async (name) => {
+  const box = await p.evaluate((n) => {
+    const k = [...document.querySelectorAll('[role="tab"]')].filter((e) => (e.getAttribute('aria-label') ?? '').includes(n));
+    const el = k.find((e) => { const r = e.getBoundingClientRect(); return r.width > 4 && r.height > 4; });
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }, name);
+  if (!box) throw new Error(`Tab fehlt: ${name}`);
+  await p.mouse.click(box.x, box.y);
+  await p.waitForTimeout(1000);
+};
 
 console.log('\n1) Erst etwas auf die Liste, damit man sieht, ob es überlebt');
 await schreibe('Etwas hinzufügen', 'Milch');
@@ -167,6 +182,41 @@ pruef('der Knopf steht wieder bereit', !enthaelt(t, 'Einen Moment'), t.slice(0, 
 await tippe('Zurück');
 await p.waitForTimeout(800);
 pruef('die Einkaufsliste ist danach unversehrt', (await text()).includes('Milch'));
+
+console.log('\n6) Dieselbe Bitte aus der Wohnung — anderer Satz, gleicher Weg');
+await tab('Wohnung');
+// Ohne Offenes gibt es nichts zu bitten; der Einstieg darf dann nicht dastehen.
+pruef('ohne offene Aufgabe kein Einstieg', (await zeilen('Jemanden bitten, etwas zu übernehmen')) === 0);
+
+await schreibe('Aufgabe hinzufügen', 'Müll rausbringen');
+pruef('mit offener Aufgabe steht der Einstieg da',
+  (await zeilen('Jemanden bitten, etwas zu übernehmen')) === 1);
+
+await tippe('Jemanden bitten, etwas zu übernehmen');
+t = await text();
+pruef('der Bitten-Bildschirm kennt die Wohnung', enthaelt(t, 'Bitte übernehmen'), t.slice(0, 400));
+// Die Einkaufsliste darf hier NICHT auftauchen. Beide Bereiche teilen sich
+// einen Bildschirm — genau das ist die Stelle, an der sie verrutschen könnten.
+pruef('und zeigt Aufgaben statt Einkäufe',
+  enthaelt(t, 'Müll rausbringen') && !enthaelt(t, 'Milch'), t.slice(0, 600));
+
+await tippe('Müll rausbringen auswählen');
+t = await text();
+pruef('gezählt wird in Aufgaben, nicht in Sachen', enthaelt(t, '1 Aufgabe ausgewählt'), t.slice(0, 400));
+// Der zweite Satz. Er bittet, er befiehlt nicht.
+pruef('die Vorschau bittet, statt zu befehlen',
+  enthaelt(t, 'Bitte übernimm, wenn du Zeit hast: Müll rausbringen'), t.slice(0, 700));
+
+await tippe('Bitte verschicken');
+await p.waitForTimeout(9500);
+t = await text();
+pruef('auch hier wird ein Fehlschlag zugegeben',
+  enthaelt(t, 'nicht geklappt') || enthaelt(t, 'noch nicht eingerichtet') || enthaelt(t, 'Niemand hat Mitteilungen'),
+  t.slice(0, 700));
+
+await tippe('Zurück');
+await p.waitForTimeout(800);
+pruef('die Wohnung ist danach unversehrt', (await text()).includes('Müll rausbringen'));
 
 console.log(`\nSeitenfehler: ${fehler.length === 0 ? 'keine' : fehler.join(' | ')}`);
 console.log(`${ok} ok, ${bad} fehlgeschlagen`);

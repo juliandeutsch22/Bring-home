@@ -3,7 +3,7 @@
 // Der Rest der Datei (Erlaubnis, Abo, Senden) hängt an Browser-APIs und einem
 // erreichbaren Server und wird deshalb hier nicht geprüft. Der Text hängt an
 // nichts — und er ist der Teil, den die andere Person wirklich liest.
-import { BITTE_NAMEN, VAPID_OEFFENTLICH, bitteText } from './mitteilungen';
+import { BITTE_NAMEN, EINLEITUNG, VAPID_OEFFENTLICH, bitteText } from './mitteilungen';
 
 describe('VAPID_OEFFENTLICH', () => {
   // Warum das geprüft wird: der Schlüssel wird aus einem Terminal KOPIERT, und
@@ -40,5 +40,35 @@ describe('bitteText', () => {
   it('kürzt genau an der Grenze noch nicht', () => {
     const genau = Array.from({ length: BITTE_NAMEN }, (_, i) => `Ding ${i + 1}`);
     expect(bitteText(genau)).not.toContain('mehr');
+  });
+
+  it('bittet aus der Wohnung anders als aus dem Wagen', () => {
+    expect(bitteText(['Müll rausbringen', 'Abwasch'], 'wohnung')).toBe(
+      'Bitte übernimm, wenn du Zeit hast: Müll rausbringen, Abwasch',
+    );
+  });
+
+  it('kürzt auch in der Wohnung', () => {
+    const viele = ['Müll', 'Abwasch', 'Wäsche', 'Staubsaugen', 'Bad'];
+    expect(bitteText(viele, 'wohnung')).toBe(
+      'Bitte übernimm, wenn du Zeit hast: Müll, Abwasch, Wäsche, Staubsaugen und 1 mehr',
+    );
+  });
+
+  it('bleibt ohne Angabe der Einkauf — der alte Weg ändert sich nicht', () => {
+    expect(bitteText(['Milch'])).toBe(bitteText(['Milch'], 'einkauf'));
+  });
+});
+
+describe('EINLEITUNG', () => {
+  // Die Mitteilung poppt auf dem Sperrbildschirm einer Person auf, mit der man
+  // zusammenlebt. Beide Sätze müssen BITTEN bleiben und dürfen nicht zu
+  // Anweisungen werden — deshalb steht das unter Test und nicht nur im
+  // Kommentar.
+  it('bittet, statt zu befehlen', () => {
+    for (const satz of Object.values(EINLEITUNG)) {
+      expect(satz).toMatch(/^Bitte /);
+      expect(satz).not.toContain('!');
+    }
   });
 });
