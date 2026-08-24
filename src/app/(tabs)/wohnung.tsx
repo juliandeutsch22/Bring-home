@@ -23,7 +23,6 @@ import { View } from 'react-native';
 import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile } from '@/components/Eingabezeile';
 import { Feld } from '@/components/Feld';
-import { Chip } from '@/components/Chip';
 import { Haken } from '@/components/Haken';
 import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
@@ -33,6 +32,7 @@ import { Screen } from '@/components/Screen';
 import { Seam } from '@/components/Seam';
 import { EmptyState } from '@/components/StateView';
 import { Type } from '@/components/Type';
+import { Wahlzeile } from '@/components/Wahlzeile';
 import { useHaushalt } from '@/data/haushalt';
 import type { Aufgabe } from '@/data/types';
 import {
@@ -167,38 +167,26 @@ export default function WohnungScreen() {
                 wert={a.wartetAuf}
               onSichern={(v) => aendern.mutate({ id: a.id, patch: { wartetAuf: v } })}
               />
-              {/* Eine Eigenschaft umschalten gehört an die getönte Pille und
-                  nicht an einen Haken — der bedeutet in dieser App „erledigt",
-                  und die Zeile verlässt danach die Liste. */}
-              <View>
-                <Type variant="eyebrow" tone="text3" style={{ marginBottom: Spacing.xs }}>Kommt wieder</Type>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs }}>
-                  {RHYTHMEN.map((r) => (
-                    <Chip
-                      key={r.label}
-                      label={r.label}
-                      // „nie" bekommt NIE die Tönung, obwohl es eine gewählte
-                      // Option ist. Getönt heißt in dieser App „an", und bei
-                      // „nie" ist nichts an — es ist die Abwesenheit eines
-                      // Rhythmus. Ein leuchtendes „nie" wäre außerdem das
-                      // Auffälligste im Panel und stünde bei fast jeder
-                      // Aufgabe. Wie beim Haken gilt: nichts gewählt, nichts
-                      // getönt.
-                      active={r.tage !== null && (a.rhythmusTage ?? null) === r.tage}
-                      accessibilityLabel={`${a.titel} ${r.label}`}
-                      onPress={() =>
-                        aendern.mutate({
-                          id: a.id,
-                          // Den Rhythmus abzuschalten muss auch das Ruhen
-                          // beenden — sonst bliebe eine Aufgabe unsichtbar
-                          // liegen, die gar nicht mehr wiederkehrt.
-                          patch: r.tage === null ? { rhythmusTage: null, faelligAb: null } : { rhythmusTage: r.tage },
-                        })
-                      }
-                    />
-                  ))}
-                </View>
-              </View>
+              {/* Dritte Zeile in derselben Form wie die zwei Felder darüber.
+                  Fünf Pillen zeigten alle Möglichkeiten gleichzeitig, brachen
+                  auf zwei Reihen um und machten aus dem Editor eine
+                  Schalttafel. Hier steht nur, was gilt. */}
+              <Wahlzeile
+                label="Kommt wieder"
+                accessibilityPraefix={a.titel}
+                optionen={RHYTHMEN.map((r) => ({ label: r.label, wert: r.tage }))}
+                wert={a.rhythmusTage ?? null}
+                leer={null}
+                onWert={(tage) =>
+                  aendern.mutate({
+                    id: a.id,
+                    // Den Rhythmus abzuschalten muss auch das Ruhen beenden —
+                    // sonst bliebe eine Aufgabe unsichtbar liegen, die gar
+                    // nicht mehr wiederkehrt.
+                    patch: tage === null ? { rhythmusTage: null, faelligAb: null } : { rhythmusTage: tage },
+                  })
+                }
+              />
             </View>
           </Faltet>
         )}

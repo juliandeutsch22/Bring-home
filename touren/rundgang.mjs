@@ -154,8 +154,15 @@ pruef('und liegt unter „Erledigt"', enthaelt(await text(), 'Erledigt · 1'), (
 console.log('\n3b) Wohnung: eine Aufgabe, die wiederkommt');
 await schreibe('Aufgabe hinzufügen', 'Müll rausbringen');
 await tippe('Müll rausbringen bearbeiten');
-await tippe('Müll rausbringen wöchentlich');
+// Die Zeile schaltet weiter: nie → täglich → wöchentlich. Der aktuelle Wert
+// steht im Namen, sonst wüsste weder ein Vorleseprogramm noch diese Tour, was
+// gerade gilt.
+pruef('der Rhythmus steht auf „nie"', (await zeilen('Müll rausbringen Kommt wieder: nie')) === 1);
+await tippe('Müll rausbringen Kommt wieder: nie');
+await tippe('Müll rausbringen Kommt wieder: täglich');
 await p.waitForTimeout(700);
+pruef('und lässt sich auf „wöchentlich" stellen',
+  (await zeilen('Müll rausbringen Kommt wieder: wöchentlich')) === 1);
 await tippe('Müll rausbringen zuklappen');
 t = await text();
 pruef('sie steht weiter offen', t.includes('1 offen'), t.slice(0, 300));
