@@ -69,13 +69,37 @@ export type Aufgabe = Sync & {
   person: string | null;
   /** Liegt bei jemand anderem. Verschwindet damit aus dem Offenen. */
   wartetAuf: string | null;
+  /**
+   * Wiederkehrend, in TAGEN. null = einmalig.
+   *
+   * Gezählt wird ab dem ABHAKEN, nicht ab einem Kalendertag: Der Müll muss
+   * eine Woche nach dem letzten Mal raus, nicht jeden Montag. Ein
+   * kalendergebundener Rhythmus häuft außerdem überfällige Fälle an, sobald
+   * jemand im Urlaub war — die Liste bestraft einen dann für die Abwesenheit.
+   */
+  rhythmusTage: number | null;
+  /**
+   * Ruht bis zu diesem Tag; davor steht sie nicht im Offenen. Wird beim
+   * Abhaken einer wiederkehrenden Aufgabe gesetzt.
+   *
+   * Auf TAGESBEGINN gesetzt, nicht auf die Uhrzeit des Abhakens: „am Freitag
+   * dran" ist die Vorstellung, die jemand vom Müll hat, nicht „ab Freitag
+   * 19:42" — und so bleibt der Zustand über den ganzen Tag derselbe, statt
+   * mitten am Nachmittag umzuspringen.
+   */
+  faelligAb: string | null; // ISO
   sort: number;
 };
 
 export type NeuerArtikel = { text: string; menge?: string | null; vonWem?: string | null };
 export type NeuerWunsch = { gericht: string; notiz?: string | null; vonWem?: string | null };
 export type NeueZutat = { wunschId: string; text: string; menge?: string | null };
-export type NeueAufgabe = { titel: string; person?: string | null; wartetAuf?: string | null };
+export type NeueAufgabe = {
+  titel: string;
+  person?: string | null;
+  wartetAuf?: string | null;
+  rhythmusTage?: number | null;
+};
 
 /** Die eine Liste, solange es nur eine gibt (mehrere kommen in Etappe 5). */
 export const HAUSHALT = 'haushalt';

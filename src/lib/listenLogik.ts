@@ -122,28 +122,124 @@ export function wartet(a: Aufgabe): boolean {
   return a.erledigtAm === null && a.wartetAuf !== null && a.wartetAuf.length > 0;
 }
 
-/** Ist sie offen und liegt bei MIR? */
-export function istOffen(a: Aufgabe): boolean {
-  return a.erledigtAm === null && !wartet(a);
+// ----------------------------------------------------------- Wiederholungen
+//
+// Ein Haushalt braucht keinen Wiederholungs-Kalender, sondern einen Satz:
+// „Nach dem Abhaken kommt sie in N Tagen wieder."
+
+/** Die angebotenen Rhythmen. Der Wert ist die Zahl der Tage. */
+export const RHYTHMEN: readonly { label: string; tage: number | null }[] = [
+  { label: 'nie', tage: null },
+  { label: 'täglich', tage: 1 },
+  { label: 'wöchentlich', tage: 7 },
+  { label: '14-tägig', tage: 14 },
+  // Dreißig Tage sind nicht „ein Monat", und das ist Absicht: Ein echter
+  // Kalendermonat wäre die einzige Regel, die sich nicht in Tagen ab dem
+  // Abhaken ausdrücken lässt — und für Fensterputzen ist der Unterschied
+  // zwischen 30 und 31 Tagen ohne Belang.
+  { label: 'monatlich', tage: 30 },
+];
+
+/** Wiederkehrt sie überhaupt? Locker verglichen, weil ältere Datensätze das Feld gar nicht tragen. */
+export function wiederkehrend(a: Aufgabe): boolean {
+  return a.rhythmusTage != null && a.rhythmusTage > 0;
 }
 
 /**
- * Die drei Abschnitte der Wohnungs-Liste. Eine Aufgabe steht in GENAU einem —
- * in Stoa war eine Aufgabe zwischenzeitlich in zweien zugleich sichtbar, weil
- * jeder Abschnitt für sich filterte.
+ * Der Tagesbeginn in `tage` Tagen — der Zeitpunkt, ab dem eine abgehakte
+ * wiederkehrende Aufgabe wieder dasteht.
+ *
+ * Auf Mitternacht gesetzt, damit der Zustand über den ganzen Tag derselbe
+ * bleibt. Wäre es die Uhrzeit des Abhakens, spränge die Aufgabe eine Woche
+ * später mitten am Abend ins Bild — und wer morgens hinsah, hielte sie für
+ * erledigt.
  */
-export function teileAufgaben(aufgaben: Aufgabe[]): {
+export function naechsteFaelligkeit(tage: number, jetzt: Date = new Date()): string {
+  const d = new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate() + tage);
+  return d.toISOString();
+}
+
+/** Ruht sie noch, weil sie erst später wieder dran ist? */
+export function ruht(a: Aufgabe, jetzt: Date = new Date()): boolean {
+  if (a.erledigtAm !== null || a.faelligAb == null) return false;
+  const ab = Date.parse(a.faelligAb);
+  // Ein unlesbarer Zeitstempel gilt als FÄLLIG. Im Zweifel lieber eine Zeile
+  // zu viel auf der Liste als eine Aufgabe, die für immer unsichtbar ruht.
+  return !Number.isNaN(ab) && ab > jetzt.getTime();
+}
+
+/** Ist sie offen und liegt bei MIR? */
+export function istOffen(a: Aufgabe, jetzt: Date = new Date()): boolean {
+  return a.erledigtAm === null && !wartet(a) && !ruht(a, jetzt);
+}
+
+/**
+ * Was beim Antippen des Hakens passieren soll — die ganze Zustandslogik an
+ * einem Ort, damit der Bildschirm nur noch anzeigt.
+ *
+ * Vier Fälle, in dieser Reihenfolge:
+ *  1. Erledigtes wird wieder geöffnet.
+ *  2. Ruhendes wird sofort wieder fällig („doch schon wieder dran").
+ *  3. Wiederkehrendes wandert NICHT ins Archiv, sondern ruht bis zum nächsten
+ *     Mal. Sonst stünden dort nach einem Jahr zweiundfünfzig „Müll rausbringen".
+ *  4. Alles andere ist schlicht erledigt.
+ */
+export function naechsterStand(a: Aufgabe, jetzt: Date = new Date()): Partial<Aufgabe> {
+  if (a.erledigtAm !== null) return { erledigtAm: null };
+  if (ruht(a, jetzt)) return { faelligAb: null };
+  if (wiederkehrend(a)) return { faelligAb: naechsteFaelligkeit(a.rhythmusTage!, jetzt) };
+  return { erledigtAm: jetzt.toISOString() };
+}
+
+/**
+ * Die vier Abschnitte der Wohnungs-Liste. Eine Aufgabe steht in GENAU einem —
+ * in Stoa war eine Aufgabe zwischenzeitlich in zweien zugleich sichtbar, weil
+ * jeder Abschnitt für sich filterte. Deshalb entscheidet hier eine
+ * Reihenfolge und keine vier unabhängigen Filter.
+ */
+export function teileAufgaben(
+  aufgaben: Aufgabe[],
+  jetzt: Date = new Date(),
+): {
   offen: Aufgabe[];
   wartend: Aufgabe[];
+  ruhend: Aufgabe[];
   erledigt: Aufgabe[];
 } {
+  const offen: Aufgabe[] = [];
+  const wartend: Aufgabe[] = [];
+  const ruhend: Aufgabe[] = [];
+  const erledigt: Aufgabe[] = [];
+
+  for (const a of aufgaben) {
+    if (a.erledigtAm !== null) erledigt.push(a);
+    else if (wartet(a)) wartend.push(a);
+    else if (ruht(a, jetzt)) ruhend.push(a);
+    else offen.push(a);
+  }
+
   return {
-    offen: aufgaben.filter(istOffen),
-    wartend: aufgaben.filter(wartet),
-    erledigt: aufgaben
-      .filter((a) => a.erledigtAm !== null)
-      .sort((a, b) => (a.erledigtAm! < b.erledigtAm! ? 1 : -1)),
+    offen,
+    wartend,
+    // Das Nächste zuerst — was am ehesten wieder dran ist, steht oben.
+    ruhend: ruhend.sort((x, y) => (x.faelligAb! < y.faelligAb! ? -1 : 1)),
+    erledigt: erledigt.sort((x, y) => (x.erledigtAm! < y.erledigtAm! ? 1 : -1)),
   };
+}
+
+/**
+ * „in 3 Tagen", „morgen", „heute" — wann die ruhende Aufgabe wieder dasteht.
+ * Der Abstand in TAGEN, nicht das Datum: „am 27." muss man erst nachrechnen.
+ */
+export function wiederIn(a: Aufgabe, jetzt: Date = new Date()): string {
+  if (a.faelligAb == null) return '';
+  const heute = new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate()).getTime();
+  const ab = Date.parse(a.faelligAb);
+  if (Number.isNaN(ab)) return '';
+  const tage = Math.round((ab - heute) / 86400000);
+  if (tage <= 0) return 'wieder dran';
+  if (tage === 1) return 'wieder morgen';
+  return `wieder in ${tage} Tagen`;
 }
 
 /** So viele Erledigte werden gezeigt; der Rest wird beziffert. */

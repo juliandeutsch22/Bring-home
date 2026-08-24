@@ -151,6 +151,35 @@ pruef('Erledigtes verlässt das Offene', t.includes('0 offen'), t.slice(0, 300))
 await tippe('Erledigtes anzeigen');
 pruef('und liegt unter „Erledigt"', enthaelt(await text(), 'Erledigt · 1'), (await text()).slice(-400));
 
+console.log('\n3b) Wohnung: eine Aufgabe, die wiederkommt');
+await schreibe('Aufgabe hinzufügen', 'Müll rausbringen');
+await tippe('Müll rausbringen bearbeiten');
+await tippe('Müll rausbringen wöchentlich');
+await p.waitForTimeout(700);
+await tippe('Müll rausbringen zuklappen');
+t = await text();
+pruef('sie steht weiter offen', t.includes('1 offen'), t.slice(0, 300));
+
+await tippe('Müll rausbringen erledigen');
+await p.waitForTimeout(900);
+t = await text();
+// Der Kern der ganzen Etappe: abgehakt heißt hier NICHT archiviert. Sonst
+// stünden im Archiv nach einem Jahr zweiundfünfzig „Müll rausbringen".
+pruef('abgehakt verlässt sie das Offene', t.includes('0 offen'), t.slice(0, 300));
+pruef('landet aber NICHT im Archiv', enthaelt(t, 'Erledigt · 1'), t.slice(-600));
+pruef('sondern unter „Kommt wieder"', enthaelt(t, 'Kommt wieder · 1'), t.slice(-600));
+
+await tippe('Wiederkehrendes anzeigen');
+t = await text();
+pruef('und sagt, wann sie wieder dran ist', enthaelt(t, 'wieder in 7 Tagen'), t.slice(-700));
+
+// Antippen heißt hier „doch schon wieder dran" — sie muss sofort zurückkommen.
+await tippe('Müll rausbringen wieder aufnehmen');
+await p.waitForTimeout(900);
+t = await text();
+pruef('antippen holt sie sofort zurück', t.includes('1 offen'), t.slice(0, 300));
+pruef('und „Kommt wieder" ist leer', !enthaelt(t, 'Kommt wieder ·'), t.slice(-600));
+
 console.log('\n4) Einkauf: einen Punkt nachbessern statt neu tippen');
 await tab('Einkauf');
 await tippe('Brot bearbeiten');

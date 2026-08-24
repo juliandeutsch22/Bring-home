@@ -6,7 +6,7 @@
 // darüber sind, was auf der Liste steht.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { findeArtikel } from '@/lib/listenLogik';
+import { findeArtikel, naechsterStand } from '@/lib/listenLogik';
 
 import { holeArtikel, holeAufgaben, holeWuensche, holeZutaten } from './index';
 import type {
@@ -209,11 +209,19 @@ export function useAufgabeAnlegen() {
   });
 }
 
+/**
+ * Den Haken einer Aufgabe umlegen.
+ *
+ * Nimmt die GANZE Aufgabe und nicht nur ihre Kennung, weil die Entscheidung an
+ * ihrem Zustand hängt: Erledigtes geht wieder auf, Ruhendes wird sofort
+ * fällig, Wiederkehrendes ruht bis zum nächsten Mal, alles andere ist
+ * erledigt. Welcher Fall zutrifft, entscheidet `naechsterStand` — eine reine
+ * Funktion, die man prüfen kann, statt vier Zweigen im Bildschirm.
+ */
 export function useAufgabeUmschalten() {
   const frisch = useFrischAufgaben();
   return useMutation({
-    mutationFn: ({ id, erledigt }: { id: string; erledigt: boolean }) =>
-      holeAufgaben().aendern(id, { erledigtAm: erledigt ? null : new Date().toISOString() }),
+    mutationFn: (a: Aufgabe) => holeAufgaben().aendern(a.id, naechsterStand(a)),
     onSuccess: frisch,
   });
 }

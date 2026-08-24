@@ -90,6 +90,10 @@ function baueAufgaben(): Ablage<Aufgabe, NeueAufgabe> {
       erledigtAm: null,
       person: e.person?.trim() || null,
       wartetAuf: e.wartetAuf?.trim() || null,
+      rhythmusTage: e.rhythmusTage ?? null,
+      // Eine frische Aufgabe ist SOFORT fällig, auch eine wiederkehrende: der
+      // Rhythmus beginnt beim ersten Abhaken, nicht beim Anlegen.
+      faelligAb: null,
       sort,
     }),
     nachSort,

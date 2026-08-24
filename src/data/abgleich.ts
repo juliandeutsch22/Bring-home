@@ -141,13 +141,29 @@ const zutatSorte: Sorte<Zutat> = {
 const aufgabeSorte: Sorte<Aufgabe> = {
   tabelle: 'aufgaben',
   ablage: () => holeAufgaben() as Ablage<Aufgabe, never>,
-  hin: (s, h) => ({ ...rumpfHin(s, h), titel: s.titel, erledigt_am: s.erledigtAm, person: s.person, wartet_auf: s.wartetAuf }),
+  hin: (s, h) => ({
+    ...rumpfHin(s, h),
+    titel: s.titel,
+    erledigt_am: s.erledigtAm,
+    person: s.person,
+    wartet_auf: s.wartetAuf,
+    // `?? null`, weil ein Datensatz von VOR Migration 06 die Felder gar nicht
+    // trägt. `undefined` ließe Postgrest die Spalte still auslassen — der alte
+    // Wert bliebe dann drüben stehen, und zwei Geräte sähen verschiedene
+    // Rhythmen.
+    rhythmus_tage: s.rhythmusTage ?? null,
+    faellig_ab: s.faelligAb ?? null,
+  }),
   her: (r) => ({
     ...rumpfHer(r),
     titel: String(r.titel ?? ''),
     erledigtAm: r.erledigt_am == null ? null : iso(r.erledigt_am),
     person: text(r.person),
     wartetAuf: text(r.wartet_auf),
+    // Zahl statt Text. `== null` fängt beides: eine Datenbank ohne die Spalte
+    // (Migration 06 noch nicht gelaufen) und einen Datensatz von davor.
+    rhythmusTage: r.rhythmus_tage == null ? null : Number(r.rhythmus_tage),
+    faelligAb: r.faellig_ab == null ? null : iso(r.faellig_ab),
   }),
 };
 

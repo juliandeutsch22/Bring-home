@@ -95,6 +95,11 @@ create table if not exists aufgaben (
   erledigt_am timestamptz,
   person text,
   wartet_auf text,
+  -- Wiederkehrend, in Tagen AB DEM ABHAKEN; ruht bis `faellig_ab`.
+  -- Warum in Tagen und nicht als Kalenderregel: siehe migration-06-rhythmus.sql.
+  rhythmus_tage integer,
+  faellig_ab timestamptz,
+  constraint rhythmus_positiv check (rhythmus_tage is null or rhythmus_tage > 0),
   sort double precision not null default 0,
   updated_at timestamptz not null,
   server_at timestamptz not null default now(),

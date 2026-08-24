@@ -1,16 +1,21 @@
 // wohnung.tsx — was in der Wohnung liegen bleibt.
 //
 // Aufgaben wie in Stoa, aber bewusst SCHLANKER: keine Projekte, keine
-// Wiederholungen, keine Lebensspannen. Das wäre Stoa ein zweites Mal.
+// Lebensspannen, keine Wiederholungsregeln. Das wäre Stoa ein zweites Mal.
 //
-// Zwei Dinge sind geblieben, weil sie in einer geteilten Wohnung erst richtig
-// Sinn ergeben:
+// Drei Dinge sind geblieben oder dazugekommen, weil sie in einer geteilten
+// Wohnung erst richtig Sinn ergeben:
 //  · Eine Aufgabe kann an einer PERSON hängen — „wer macht das?" ist dort die
 //    eigentliche Frage. Frei getippt, kein Konto.
 //  · „Warten auf" für alles, was bei jemand anderem liegt (Hausverwaltung,
 //    Handwerker). Es verschwindet damit aus dem Offenen, ohne verloren zu
 //    gehen — und mahnt nicht, weil man selbst nichts tun kann.
-import { Hammer, PauseCircle, Send, Trash2 } from 'lucide-react-native';
+//  · Ein RHYTHMUS in Tagen. Das ist ausdrücklich nicht Stoas Regelwerk,
+//    sondern ein einziger Satz: „Nach dem Abhaken kommt sie in N Tagen
+//    wieder." Der Müll muss eine Woche nach dem letzten Mal raus, nicht jeden
+//    Montag — und wer im Urlaub war, kommt nicht zu einem Stapel Überfälligem
+//    zurück.
+import { Hammer, PauseCircle, Repeat, Send, Trash2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
@@ -18,6 +23,7 @@ import { View } from 'react-native';
 import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile } from '@/components/Eingabezeile';
 import { Feld } from '@/components/Feld';
+import { Chip } from '@/components/Chip';
 import { Haken } from '@/components/Haken';
 import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
@@ -38,7 +44,7 @@ import {
 } from '@/data/queries';
 import { hapticSelect, hapticSuccess } from '@/lib/haptics';
 import { useNachklang } from '@/lib/nachklang';
-import { kuerze, teileAufgaben } from '@/lib/listenLogik';
+import { RHYTHMEN, kuerze, teileAufgaben, wiederIn, wiederkehrend } from '@/lib/listenLogik';
 import { useColors } from '@/theme/ThemeProvider';
 import { Spacing } from '@/theme/theme.tokens';
 
@@ -54,13 +60,14 @@ export default function WohnungScreen() {
 
   const [entwurf, setEntwurf] = useState('');
   const [zeigeWartend, setZeigeWartend] = useState(false);
+  const [zeigeRuhend, setZeigeRuhend] = useState(false);
   const [zeigeErledigt, setZeigeErledigt] = useState(false);
   /** Welche Aufgabe gerade ihre Zeile aufgeklappt hat (Person / Warten auf). */
   const [offeneId, setOffeneId] = useState<string | null>(null);
   // Erst den Haken zeigen, dann die Zeile fortschaffen (siehe `nachklang.ts`).
   const { markiert, anstossen } = useNachklang();
 
-  const { offen, wartend, erledigt } = useMemo(() => teileAufgaben(aufgaben ?? []), [aufgaben]);
+  const { offen, wartend, ruhend, erledigt } = useMemo(() => teileAufgaben(aufgaben ?? []), [aufgaben]);
   const [gezeigtErledigt, restErledigt] = useMemo(() => kuerze(erledigt), [erledigt]);
 
   const hinzufuegen = () => {
@@ -78,23 +85,34 @@ export default function WohnungScreen() {
    * liegt daneben. Läge er darin, würde die Layout-Animation ihn beim Wachsen
    * stauchen (siehe `Listenzeile.tsx`).
    */
-  const zeile = (a: Aufgabe, art: 'offen' | 'wartend', trenner: boolean) => {
+  const zeile = (a: Aufgabe, art: 'offen' | 'wartend' | 'ruhend', trenner: boolean) => {
     const aufgeklappt = offeneId === a.id;
+    // Ruhendes anzutippen heißt „doch schon wieder dran" — es kommt zurück ins
+    // Offene, statt erledigt zu werden. Der Haken hieße hier das Falsche.
+    const nebensatz = [
+      a.person,
+      a.wartetAuf ? `wartet auf ${a.wartetAuf}` : null,
+      art === 'ruhend' ? wiederIn(a) : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
     return (
       <View key={a.id}>
         <Listenzeile>
         {trenner && <Seam marginVertical={2} />}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
           <PressableScale
-            accessibilityLabel={`${a.titel} erledigen`}
+            accessibilityLabel={art === 'ruhend' ? `${a.titel} wieder aufnehmen` : `${a.titel} erledigen`}
             onPress={() => {
               hapticSelect();
-              anstossen(a.id, () => umschalten.mutate({ id: a.id, erledigt: false }));
+              anstossen(a.id, () => umschalten.mutate(a));
             }}
             style={{ paddingVertical: Spacing.sm + 2 }}
           >
             {art === 'wartend' && !markiert.has(a.id) ? (
               <PauseCircle size={22} color={colors.accentA} strokeWidth={2} />
+            ) : art === 'ruhend' && !markiert.has(a.id) ? (
+              <Repeat size={22} color={colors.accentA} strokeWidth={2} />
             ) : (
               <Haken an={markiert.has(a.id)} />
             )}
@@ -108,11 +126,17 @@ export default function WohnungScreen() {
             pressedScale={0.99}
             style={{ flex: 1, paddingVertical: Spacing.sm + 2 }}
           >
-            <Type variant="body" numberOfLines={2}>{a.titel}</Type>
-            {(a.person || a.wartetAuf) && (
-              <Type variant="caption" tone="text3" numberOfLines={1}>
-                {[a.person, a.wartetAuf ? `wartet auf ${a.wartetAuf}` : null].filter(Boolean).join(' · ')}
-              </Type>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+              <Type variant="body" style={{ flexShrink: 1 }} numberOfLines={2}>{a.titel}</Type>
+              {/* Ein Zeichen, das nur es selbst ist, liegt nackt auf der Platte
+                  und trägt seine Farbe im Strich — keine getönte Fläche, denn
+                  „wiederkehrend" ist eine Eigenschaft und kein Zustand „an". */}
+              {wiederkehrend(a) && art !== 'ruhend' && (
+                <Repeat size={13} color={colors.text3} strokeWidth={2.4} />
+              )}
+            </View>
+            {nebensatz.length > 0 && (
+              <Type variant="caption" tone="text3" numberOfLines={1}>{nebensatz}</Type>
             )}
           </PressableScale>
           <PressableScale
@@ -143,6 +167,38 @@ export default function WohnungScreen() {
                 wert={a.wartetAuf}
               onSichern={(v) => aendern.mutate({ id: a.id, patch: { wartetAuf: v } })}
               />
+              {/* Eine Eigenschaft umschalten gehört an die getönte Pille und
+                  nicht an einen Haken — der bedeutet in dieser App „erledigt",
+                  und die Zeile verlässt danach die Liste. */}
+              <View>
+                <Type variant="eyebrow" tone="text3" style={{ marginBottom: Spacing.xs }}>Kommt wieder</Type>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs }}>
+                  {RHYTHMEN.map((r) => (
+                    <Chip
+                      key={r.label}
+                      label={r.label}
+                      // „nie" bekommt NIE die Tönung, obwohl es eine gewählte
+                      // Option ist. Getönt heißt in dieser App „an", und bei
+                      // „nie" ist nichts an — es ist die Abwesenheit eines
+                      // Rhythmus. Ein leuchtendes „nie" wäre außerdem das
+                      // Auffälligste im Panel und stünde bei fast jeder
+                      // Aufgabe. Wie beim Haken gilt: nichts gewählt, nichts
+                      // getönt.
+                      active={r.tage !== null && (a.rhythmusTage ?? null) === r.tage}
+                      accessibilityLabel={`${a.titel} ${r.label}`}
+                      onPress={() =>
+                        aendern.mutate({
+                          id: a.id,
+                          // Den Rhythmus abzuschalten muss auch das Ruhen
+                          // beenden — sonst bliebe eine Aufgabe unsichtbar
+                          // liegen, die gar nicht mehr wiederkehrt.
+                          patch: r.tage === null ? { rhythmusTage: null, faelligAb: null } : { rhythmusTage: r.tage },
+                        })
+                      }
+                    />
+                  ))}
+                </View>
+              </View>
             </View>
           </Faltet>
         )}
@@ -241,6 +297,34 @@ export default function WohnungScreen() {
         </Reveal>
       )}
 
+      {/* Ruhendes: abgehakt, kommt aber wieder. Eingeklappt und mit Zahl —
+          das Abhaken einer wiederkehrenden Aufgabe soll sich nicht anfühlen
+          wie Löschen, also muss irgendwo stehen, dass sie zurückkommt. */}
+      {ruhend.length > 0 && (
+        <Reveal delay={120}>
+          <View>
+            <PressableScale
+              accessibilityLabel={zeigeRuhend ? 'Wiederkehrendes ausblenden' : 'Wiederkehrendes anzeigen'}
+              onPress={() => {
+                hapticSelect();
+                setZeigeRuhend((v) => !v);
+              }}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.md }}
+            >
+              <Type variant="eyebrow" tone="text3">Kommt wieder · {ruhend.length}</Type>
+              <DisclosureChevron open={zeigeRuhend} color={colors.text3} />
+            </PressableScale>
+            {zeigeRuhend && (
+              <Faltet>
+                <GlassPanel style={{ marginTop: Spacing.xs }}>
+                  {ruhend.map((a, i) => zeile(a, 'ruhend', i > 0))}
+                </GlassPanel>
+              </Faltet>
+            )}
+          </View>
+        </Reveal>
+      )}
+
       {erledigt.length > 0 && (
         <Reveal delay={120}>
           <View>
@@ -265,7 +349,7 @@ export default function WohnungScreen() {
                       accessibilityLabel={`${a.titel} wieder öffnen`}
                       onPress={() => {
                         hapticSelect();
-                        anstossen(a.id, () => umschalten.mutate({ id: a.id, erledigt: true }));
+                        anstossen(a.id, () => umschalten.mutate(a));
                       }}
                       pressedScale={0.99}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm + 2 }}

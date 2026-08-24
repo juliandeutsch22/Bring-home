@@ -3,16 +3,22 @@ import type { Artikel, Aufgabe, Wunsch, Zutat } from '@/data/types';
 import { HAUSHALT } from '@/data/types';
 
 import {
+  RHYTHMEN,
   fehlendeZutaten,
   findeArtikel,
   istKochbar,
   istOffen,
   kuerze,
+  naechsteFaelligkeit,
+  naechsterStand,
   normalisiere,
+  ruht,
   teileAufgaben,
   teileListe,
   teileWuensche,
   wartet,
+  wiederIn,
+  wiederkehrend,
   zutatStatus,
 } from './listenLogik';
 
@@ -41,6 +47,8 @@ const aufgabe = (p: Partial<Aufgabe> & { id: string; titel: string }): Aufgabe =
   erledigtAm: null,
   person: null,
   wartetAuf: null,
+  rhythmusTage: null,
+  faelligAb: null,
   sort: 0,
   updatedAt: '2026-08-17T10:00:00.000Z',
   deletedAt: null,
@@ -210,6 +218,102 @@ describe('teileAufgaben', () => {
 
   it('hält ein leeres „wartet auf" nicht für ein Warten', () => {
     expect(wartet(aufgabe({ id: '1', titel: 'x', wartetAuf: '' }))).toBe(false);
+  });
+});
+
+describe('Wiederholungen', () => {
+  // Ein fester Zeitpunkt, damit die Tests nicht davon abhängen, wann sie
+  // laufen — sonst schlägt einer davon irgendwann um Mitternacht fehl.
+  const jetzt = new Date(2026, 7, 20, 14, 30); // 20.08.2026, 14:30 Ortszeit
+
+  it('legt den nächsten Termin auf den Tagesbeginn, nicht auf die Uhrzeit', () => {
+    const ab = new Date(naechsteFaelligkeit(7, jetzt));
+    expect(ab.getDate()).toBe(27);
+    expect(ab.getHours()).toBe(0);
+    expect(ab.getMinutes()).toBe(0);
+  });
+
+  it('nimmt eine abgehakte wiederkehrende Aufgabe NICHT ins Archiv', () => {
+    // Sonst stünden dort nach einem Jahr zweiundfünfzig „Müll rausbringen".
+    const a = aufgabe({ id: '1', titel: 'Müll', rhythmusTage: 7 });
+    const stand = naechsterStand(a, jetzt);
+    expect(stand.erledigtAm).toBeUndefined();
+    expect(stand.faelligAb).toBe(naechsteFaelligkeit(7, jetzt));
+  });
+
+  it('hakt eine einmalige Aufgabe ganz normal ab', () => {
+    const a = aufgabe({ id: '1', titel: 'Regal aufbauen' });
+    expect(naechsterStand(a, jetzt).erledigtAm).toBe(jetzt.toISOString());
+  });
+
+  it('holt eine ruhende Aufgabe auf Antippen sofort zurück', () => {
+    const a = aufgabe({ id: '1', titel: 'Müll', rhythmusTage: 7, faelligAb: naechsteFaelligkeit(7, jetzt) });
+    expect(ruht(a, jetzt)).toBe(true);
+    expect(naechsterStand(a, jetzt)).toEqual({ faelligAb: null });
+  });
+
+  it('öffnet Erledigtes wieder, auch wenn ein Rhythmus daranhängt', () => {
+    const a = aufgabe({ id: '1', titel: 'Müll', rhythmusTage: 7, erledigtAm: '2026-08-19T09:00:00.000Z' });
+    expect(naechsterStand(a, jetzt)).toEqual({ erledigtAm: null });
+  });
+
+  it('lässt eine ruhende Aufgabe am Fälligkeitstag wieder auftauchen', () => {
+    const a = aufgabe({ id: '1', titel: 'Müll', rhythmusTage: 7, faelligAb: naechsteFaelligkeit(7, jetzt) });
+    const spaeter = new Date(2026, 7, 27, 7, 0); // derselbe Tag, früh
+    expect(ruht(a, spaeter)).toBe(false);
+    expect(istOffen(a, spaeter)).toBe(true);
+  });
+
+  it('steckt Ruhendes in seinen eigenen Abschnitt, nicht ins Offene', () => {
+    const ruhig = aufgabe({ id: '1', titel: 'Müll', rhythmusTage: 7, faelligAb: naechsteFaelligkeit(7, jetzt) });
+    const jetztFaellig = aufgabe({ id: '2', titel: 'Abwasch', rhythmusTage: 1 });
+    const t = teileAufgaben([ruhig, jetztFaellig], jetzt);
+    expect(t.ruhend.map((a) => a.id)).toEqual(['1']);
+    expect(t.offen.map((a) => a.id)).toEqual(['2']);
+  });
+
+  it('lässt Warten vor Ruhen gehen — genau EIN Abschnitt', () => {
+    const a = aufgabe({
+      id: '1',
+      titel: 'Heizung',
+      wartetAuf: 'Termin',
+      rhythmusTage: 30,
+      faelligAb: naechsteFaelligkeit(30, jetzt),
+    });
+    const t = teileAufgaben([a], jetzt);
+    expect(t.wartend.map((x) => x.id)).toEqual(['1']);
+    expect(t.ruhend).toHaveLength(0);
+    expect(t.offen).toHaveLength(0);
+  });
+
+  it('hält einen unlesbaren Termin für FÄLLIG statt für ewig ruhend', () => {
+    // Im Zweifel lieber eine Zeile zu viel auf der Liste als eine Aufgabe, die
+    // unsichtbar liegen bleibt und nie wieder auftaucht.
+    const a = aufgabe({ id: '1', titel: 'Müll', rhythmusTage: 7, faelligAb: 'kaputt' });
+    expect(ruht(a, jetzt)).toBe(false);
+    expect(istOffen(a, jetzt)).toBe(true);
+  });
+
+  it('kommt mit Datensätzen von vor der Migration klar', () => {
+    // Ältere Einträge im Gerätespeicher tragen die Felder gar nicht — sie
+    // kommen als `undefined` aus dem JSON, nicht als null.
+    const alt = { ...aufgabe({ id: '1', titel: 'Regal' }), rhythmusTage: undefined, faelligAb: undefined } as unknown as Aufgabe;
+    expect(wiederkehrend(alt)).toBe(false);
+    expect(ruht(alt, jetzt)).toBe(false);
+    expect(istOffen(alt, jetzt)).toBe(true);
+    expect(naechsterStand(alt, jetzt).erledigtAm).toBe(jetzt.toISOString());
+  });
+
+  it('sagt in Tagen, wann es wieder dran ist', () => {
+    const a = aufgabe({ id: '1', titel: 'Müll', faelligAb: naechsteFaelligkeit(3, jetzt) });
+    expect(wiederIn(a, jetzt)).toBe('wieder in 3 Tagen');
+    expect(wiederIn(aufgabe({ id: '2', titel: 'x', faelligAb: naechsteFaelligkeit(1, jetzt) }), jetzt)).toBe('wieder morgen');
+  });
+
+  it('bietet keinen Rhythmus an, der sich sofort selbst wieder stellt', () => {
+    for (const r of RHYTHMEN) {
+      if (r.tage !== null) expect(r.tage).toBeGreaterThan(0);
+    }
   });
 });
 
