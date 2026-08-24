@@ -64,7 +64,10 @@ export function Mulde({ children }: { children: React.ReactNode }) {
   // Licht kommt von links oben (wie im Backdrop und an der Platte). In einer
   // VERTIEFUNG heißt das: Schatten oben und links, Licht unten und rechts —
   // die Umkehrung der erhabenen Platte.
-  const schatten = isDark ? 'rgba(0,0,0,0.60)' : 'rgba(52,46,32,0.20)';
+  // Die Kante ist scharf, aber sie ist LEISE. Bei 0,20 las sie sich als
+  // gezogener Strich statt als Schnittkante — der Verlauf darunter trägt die
+  // Tiefe, die Linie sagt nur, wo sie anfängt.
+  const schatten = isDark ? 'rgba(0,0,0,0.45)' : 'rgba(52,46,32,0.13)';
   const schattenWeich = isDark ? 'rgba(0,0,0,0.28)' : 'rgba(52,46,32,0.075)';
   const licht = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.55)';
 
@@ -133,27 +136,45 @@ export function MuldenZeile({
   children,
   /** Die letzte Zeile bekommt keinen Trenner. */
   letzte = false,
+  breit = false,
 }: {
   label: string;
   children: React.ReactNode;
   letzte?: boolean;
+  /**
+   * Bezeichnung OBEN, Wert darunter über die volle Breite und linksbündig.
+   *
+   * Für Inhalt statt Eigenschaft. „Menge" ist eine Eigenschaft und passt in
+   * eine Zeile; der NAME eines Artikels ist der Inhalt selbst und kann lang
+   * sein. Rechtsbündig neben einer Bezeichnung wurde er abgeschnitten — man
+   * sah „Apfelessig / Balsamico no…" und kam nur durch Scrollen im Feld an
+   * den Rest. Ein Wert, den man nicht lesen kann, ist kein Wert.
+   */
+  breit?: boolean;
 }) {
   const colors = useColors();
   return (
     <View>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: Spacing.md,
-          paddingHorizontal: Spacing.md,
-          paddingVertical: Spacing.sm + 2,
-          minHeight: 44,
-        }}
-      >
-        <Type variant="body" tone="text2" numberOfLines={1}>{label}</Type>
-        <View style={{ flex: 1, alignItems: 'flex-end' }}>{children}</View>
-      </View>
+      {breit ? (
+        <View style={{ paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, gap: 2 }}>
+          <Type variant="caption" tone="text3" numberOfLines={1}>{label}</Type>
+          {children}
+        </View>
+      ) : (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: Spacing.md,
+            paddingHorizontal: Spacing.md,
+            paddingVertical: Spacing.sm + 2,
+            minHeight: 44,
+          }}
+        >
+          <Type variant="body" tone="text2" numberOfLines={1}>{label}</Type>
+          <View style={{ flex: 1, alignItems: 'flex-end' }}>{children}</View>
+        </View>
+      )}
       {/* An der TEXTKANTE eingerückt, nicht über die volle Breite: so liest
           sich die Mulde als ein Block mit Zeilen, nicht als Stapel von
           Kästchen. */}

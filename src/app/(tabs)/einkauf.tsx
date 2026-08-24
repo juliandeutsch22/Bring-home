@@ -154,7 +154,11 @@ export default function EinkaufScreen() {
                         Zeile in den Wagen. */}
                     <Haken an={markiert.has(a.id)} />
                     <View style={{ flex: 1 }}>
-                      <Type variant="body" numberOfLines={1}>{a.text}</Type>
+                      {/* ZWEI Zeilen wie in der Wohnung. Ein Name wie
+                          „Apfelessig / Balsamico non filtrato" war einzeilig
+                          abgeschnitten und nur über den Editor ganz zu lesen —
+                          ein Umweg für etwas, das schon dastehen sollte. */}
+                      <Type variant="body" numberOfLines={2}>{a.text}</Type>
                       {a.vonWem && <Type variant="caption" tone="text3" numberOfLines={1}>{`von ${a.vonWem}`}</Type>}
                     </View>
                     {a.menge && <Type variant="label" tone="text3" tabular>{a.menge}</Type>}
@@ -178,9 +182,12 @@ export default function EinkaufScreen() {
                       <Mulde>
                         {/* Der Name darf nicht leer werden — ein namenloser
                             Punkt wäre auf der Liste nicht wiederzufinden. */}
-                        <MuldenZeile label="Was">
+                        {/* Breit, weil der Name der INHALT ist und nicht eine
+                            Eigenschaft: „Apfelessig / Balsamico non filtrato"
+                            passt in keine rechte Spalte. */}
+                        <MuldenZeile label="Was" breit>
                           <Feld
-                            nackt
+                            breit
                             label={`${a.text} umbenennen`}
                             platzhalter="Was?"
                             wert={a.text}

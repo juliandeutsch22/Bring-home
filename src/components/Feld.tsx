@@ -22,6 +22,7 @@ export function Feld({
   onSichern,
   stil,
   nackt = false,
+  breit = false,
 }: {
   label: string;
   platzhalter: string;
@@ -35,6 +36,12 @@ export function Feld({
    * Vertiefungen ineinander, und die zweite hätte keine Bedeutung.
    */
   nackt?: boolean;
+  /**
+   * Volle Breite, linksbündig, MEHRZEILIG — für Inhalt, der lang werden darf.
+   * Rechtsbündig in einer Zeile wurde ein langer Name abgeschnitten, und man
+   * kam nur durch Scrollen im Feld an den Rest.
+   */
+  breit?: boolean;
 }) {
   const colors = useColors();
   const [entwurf, setEntwurf] = useState(wert ?? '');
@@ -55,20 +62,34 @@ export function Feld({
       placeholder={platzhalter}
       placeholderTextColor={colors.text3}
       returnKeyType="done"
+      // Mehrzeilig, aber Enter SICHERT trotzdem: `blurOnSubmit` sorgt dafür,
+      // dass die Eingabetaste das Feld schließt, statt einen Zeilenumbruch in
+      // einen Artikelnamen zu schreiben.
+      multiline={breit}
+      // AUSDRÜCKLICH zwei Zeilen, nicht der Zufallswert des Browsers: Ein
+      // mehrzeiliges Feld wächst im Web nicht mit, es hat eine feste Höhe.
+      // Zwei ist dieselbe Zahl, die auch die Listenzeile zeigt — der Editor
+      // zeigt damit nie weniger als die Liste. Der Preis ist etwas Leerraum
+      // bei kurzen Namen; die Alternative wäre ein Feld, in dem lange Namen
+      // wieder scrollen müssten, und genau das sollte weg.
+      numberOfLines={breit ? 2 : undefined}
+      blurOnSubmit={breit ? true : undefined}
       style={[
         { fontSize: T.md, color: colors.text, minHeight: 22 },
-        nackt
-          // In der Mulde steht der Wert RECHTS und die Bezeichnung links —
-          // wie in einer Einstellungsliste. Ohne eigenes Polster, das trägt
-          // die Zeile der Mulde.
-          ? { width: '100%', textAlign: 'right' }
-          : { flex: 1, paddingVertical: Spacing.sm },
+        breit
+          ? { width: '100%', textAlign: 'left' }
+          : nackt
+            // In der Mulde steht der Wert RECHTS und die Bezeichnung links —
+            // wie in einer Einstellungsliste. Ohne eigenes Polster, das trägt
+            // die Zeile der Mulde.
+            ? { width: '100%', textAlign: 'right' }
+            : { flex: 1, paddingVertical: Spacing.sm },
         webNoOutline,
       ]}
     />
   );
 
-  if (nackt) return eingabe;
+  if (nackt || breit) return eingabe;
 
   return (
     <View
