@@ -25,18 +25,12 @@
 // und genau das war der alte Zustand.
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { PressableScale } from '@/components/PressableScale';
 import { Type } from '@/components/Type';
 import { useColors, useScheme } from '@/theme/ThemeProvider';
 import { R, Spacing } from '@/theme/theme.tokens';
-
-// Dieselben Blätter wie in `Glass.tsx` — die Mulde liegt IN der Platte, also
-// muss die Maserung dieselbe sein. Zwei Steinsorten nebeneinander sähen aus
-// wie zwei Materialien.
-const MARMOR_HELL = require('../../assets/images/marble-light.jpg');
-const MARMOR_DUNKEL = require('../../assets/images/marble-dark.jpg');
 
 /**
  * Die Vertiefung selbst. Nimmt Zeilen auf, keine freien Felder.
@@ -58,7 +52,6 @@ const MARMOR_DUNKEL = require('../../assets/images/marble-dark.jpg');
  * eingerückt abzubrechen — eine Kante hört an der Ecke auf, nicht davor.
  */
 export function Mulde({ children }: { children: React.ReactNode }) {
-  const colors = useColors();
   const isDark = useScheme() === 'dark';
 
   // Licht kommt von links oben (wie im Backdrop und an der Platte). In einer
@@ -70,24 +63,26 @@ export function Mulde({ children }: { children: React.ReactNode }) {
   const schatten = isDark ? 'rgba(0,0,0,0.45)' : 'rgba(52,46,32,0.13)';
   const schattenWeich = isDark ? 'rgba(0,0,0,0.28)' : 'rgba(52,46,32,0.075)';
   const licht = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.55)';
+  // Trifft über der Platte fast genau den `sunk`-Ton (gerechnet: 0,085 auf
+  // #FBF7EC ergibt ~#EBE6D6), lässt dabei aber das Korn stehen.
+  const tiefe = isDark ? 'rgba(0,0,0,0.28)' : 'rgba(52,46,32,0.085)';
 
   return (
-    <View style={{ borderRadius: R.md, backgroundColor: colors.sunk, overflow: 'hidden' }}>
-      {/* DASSELBE Korn wie die Platte ringsum — und das ist keine Kosmetik.
-          Ohne Textur ist die Mulde eine glatte Fläche in einer gemaserten, und
-          sie liest sich als Kunststoff, der in Stein eingelassen wurde. Eine
-          Mulde ist derselbe Stein, nur tiefer; also trägt sie dieselbe
-          Maserung. Das war der eigentliche Grund, warum die erste Fassung
-          „flach und unnatürlich" wirkte — nicht die Grate. */}
-      {/* Im View verpackt wie in `Glass.tsx`: `Image` kennt `pointerEvents`
-          nicht. */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Image
-          source={isDark ? MARMOR_DUNKEL : MARMOR_HELL}
-          resizeMode="cover"
-          style={StyleSheet.absoluteFill}
-        />
-      </View>
+    // DURCHSCHEINEND statt eigener Fläche — und das ist der Kern der Sache.
+    //
+    // Erst lag hier eine deckende Tönung plus ein eigenes Marmor-Blatt. Zwei
+    // Probleme auf einmal: Das Blatt ist 400x300 groß und wurde bei einer
+    // 437 px hohen Mulde nicht mitgestreckt, sondern hörte nach 300 px auf —
+    // gemessen. Der Rest stand ohne Korn da, und die Kante dazwischen lief
+    // quer durch den Block.
+    //
+    // Die Antwort war nicht ein größeres Blatt, sondern gar keins: Eine Mulde
+    // hat keinen EIGENEN Stein. Sie ist dieselbe Platte, nur weniger
+    // belichtet. Ein durchscheinender dunkler Ton lässt die Maserung der
+    // Platte stehen und nimmt ihr nur Licht — bei jeder Höhe, ohne Bild, ohne
+    // Skalierung. (Im dunklen Thema ist `sunk` ohnehin schon durchscheinend;
+    // hier ziehen beide Fassungen endlich gleich.)
+    <View style={{ borderRadius: R.md, backgroundColor: tiefe, overflow: 'hidden' }}>
       {/* Der Schnitt selbst: die Kante, an der Stein weggenommen wurde. Eine
           Haarlinie, nicht mehr — sie ist scharf, aber sie ist dünn. */}
       <View
@@ -124,6 +119,51 @@ export function Mulde({ children }: { children: React.ReactNode }) {
 }
 
 /**
+ * Eine freie Zeile in der Mulde — Inhalt statt Bezeichnung/Wert.
+ *
+ * Für LISTEN: Zutaten haben keine Bezeichnungsspalte, sie sind selbst der
+ * Inhalt. Sie bekommen trotzdem die Polsterung und den Trenner der Mulde,
+ * damit eine Liste und ein Eigenschaftsblock in derselben Vertiefung dieselbe
+ * Zeilenhöhe und dieselbe Kante haben.
+ */
+export function MuldenReihe({
+  children,
+  letzte = false,
+  einzug = false,
+}: {
+  children: React.ReactNode;
+  letzte?: boolean;
+  /** Eingerückt — für Zeilen, die zu der darüber gehören. */
+  einzug?: boolean;
+}) {
+  const colors = useColors();
+  return (
+    <View>
+      <View
+        style={{
+          paddingLeft: einzug ? Spacing.md + Spacing.lg : Spacing.md,
+          paddingRight: Spacing.md,
+          paddingVertical: Spacing.xs,
+          minHeight: 44,
+          justifyContent: 'center',
+        }}
+      >
+        {children}
+      </View>
+      {!letzte && (
+        <View
+          style={{
+            height: StyleSheet.hairlineWidth,
+            backgroundColor: colors.border,
+            marginLeft: einzug ? Spacing.md + Spacing.lg : Spacing.md,
+          }}
+        />
+      )}
+    </View>
+  );
+}
+
+/**
  * Eine Zeile in der Mulde: Bezeichnung links, Wert rechts.
  *
  * Die Bezeichnung ist der eigentliche Gewinn gegenüber dem alten Zustand. Ein
@@ -137,10 +177,13 @@ export function MuldenZeile({
   /** Die letzte Zeile bekommt keinen Trenner. */
   letzte = false,
   breit = false,
+  einzug = false,
 }: {
   label: string;
   children: React.ReactNode;
   letzte?: boolean;
+  /** Eingerückt — für Zeilen, die zu der Listenzeile darüber gehören. */
+  einzug?: boolean;
   /**
    * Bezeichnung OBEN, Wert darunter über die volle Breite und linksbündig.
    *
@@ -153,10 +196,11 @@ export function MuldenZeile({
   breit?: boolean;
 }) {
   const colors = useColors();
+  const links = einzug ? Spacing.md + Spacing.lg : Spacing.md;
   return (
     <View>
       {breit ? (
-        <View style={{ paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, gap: 2 }}>
+        <View style={{ paddingLeft: links, paddingRight: Spacing.md, paddingVertical: Spacing.sm + 2, gap: 2 }}>
           <Type variant="caption" tone="text3" numberOfLines={1}>{label}</Type>
           {children}
         </View>
@@ -166,7 +210,8 @@ export function MuldenZeile({
             flexDirection: 'row',
             alignItems: 'center',
             gap: Spacing.md,
-            paddingHorizontal: Spacing.md,
+            paddingLeft: links,
+            paddingRight: Spacing.md,
             paddingVertical: Spacing.sm + 2,
             minHeight: 44,
           }}
@@ -183,7 +228,7 @@ export function MuldenZeile({
           style={{
             height: StyleSheet.hairlineWidth,
             backgroundColor: colors.border,
-            marginLeft: Spacing.md,
+            marginLeft: links,
           }}
         />
       )}
@@ -203,22 +248,40 @@ export function MuldenHandlung({
   label,
   accessibilityLabel,
   onPress,
+  einzug = false,
+  /** Zweitfarbig (Default) fürs Wegnehmen, `accentA` fürs Hinzufügen. */
+  ton = 'accentB',
+  davor,
 }: {
   label: string;
   accessibilityLabel: string;
   onPress: () => void;
+  einzug?: boolean;
+  ton?: 'accentA' | 'accentB';
+  /** Ein Zeichen vor dem Text, z. B. ein Plus. */
+  davor?: React.ReactNode;
 }) {
   const colors = useColors();
+  const links = einzug ? Spacing.md + Spacing.lg : Spacing.md;
   return (
     <View>
-      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: Spacing.md }} />
+      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: links }} />
       <PressableScale
         accessibilityLabel={accessibilityLabel}
         onPress={onPress}
         pressedScale={0.99}
-        style={{ paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, minHeight: 44, justifyContent: 'center' }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: Spacing.sm,
+          paddingLeft: links,
+          paddingRight: Spacing.md,
+          paddingVertical: Spacing.sm + 2,
+          minHeight: 44,
+        }}
       >
-        <Type variant="body" tone="accentB">{label}</Type>
+        {davor}
+        <Type variant="body" tone={ton}>{label}</Type>
       </PressableScale>
     </View>
   );

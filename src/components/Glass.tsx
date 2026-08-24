@@ -83,8 +83,18 @@ export function Glass({ variant = 'card', radius, tint, style, contentStyle, chi
       ]}
     >
       {showTexture && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Image source={isDark ? MARBLE_DARK : MARBLE_LIGHT} resizeMode="cover" style={StyleSheet.absoluteFill} />
+        // AUSDRÜCKLICH 100 % statt `absoluteFill` auf dem Bild: Gemessen war
+        // jeder Marmor-Träger auf der Seite genau 400x300 — die Maße des
+        // Blattes — egal wie hoch die Platte war. Auf allem, was höher als
+        // 300 px wird (ein aufgeklapptes Gericht mit offenem Zutaten-Editor),
+        // hörte die Maserung deshalb mittendrin auf, und quer durch die Platte
+        // lief eine sichtbare Kante.
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="none">
+          <Image
+            source={isDark ? MARBLE_DARK : MARBLE_LIGHT}
+            resizeMode="cover"
+            style={{ width: '100%', height: '100%' }}
+          />
         </View>
       )}
       {showChisel && (

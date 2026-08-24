@@ -140,6 +140,7 @@ export function Nebenzeile({
   onWert,
   onAbschicken,
   stil,
+  nackt = false,
 }: {
   label: string;
   platzhalter: string;
@@ -147,8 +148,34 @@ export function Nebenzeile({
   onWert: (v: string) => void;
   onAbschicken: () => void;
   stil?: object;
+  /**
+   * Ohne eigene Hülle — für den Einsatz IN einer `Mulde`. Sonst läge in der
+   * Vertiefung eine gerundete Pille, also genau das frei herumliegende Feld,
+   * das die Mulde abgeschafft hat.
+   */
+  nackt?: boolean;
 }) {
   const colors = useColors();
+  const eingabe = (
+      <TextInput
+        accessibilityLabel={label}
+        value={wert}
+        onChangeText={onWert}
+        onSubmitEditing={onAbschicken}
+        placeholder={platzhalter}
+        placeholderTextColor={colors.text3}
+        returnKeyType="done"
+        submitBehavior="submit"
+        style={[
+          { flex: 1, minWidth: 0, fontSize: T.md, color: colors.text, minHeight: 22 },
+          nackt ? { paddingVertical: 0 } : { paddingVertical: Spacing.sm },
+          webNoOutline,
+        ]}
+      />
+  );
+
+  if (nackt) return eingabe;
+
   return (
     <View
       style={[
@@ -165,17 +192,7 @@ export function Nebenzeile({
         stil,
       ]}
     >
-      <TextInput
-        accessibilityLabel={label}
-        value={wert}
-        onChangeText={onWert}
-        onSubmitEditing={onAbschicken}
-        placeholder={platzhalter}
-        placeholderTextColor={colors.text3}
-        returnKeyType="done"
-        submitBehavior="submit"
-        style={[{ flex: 1, minWidth: 0, fontSize: T.md, color: colors.text, paddingVertical: Spacing.sm, minHeight: 22 }, webNoOutline]}
-      />
+      {eingabe}
     </View>
   );
 }

@@ -20,12 +20,13 @@ import { Check, Pencil, Plus, Trash2, UtensilsCrossed } from 'lucide-react-nativ
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { Chip } from '@/components/Chip';
 import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile, Nebenzeile } from '@/components/Eingabezeile';
 import { Feld } from '@/components/Feld';
 import { GlassPanel } from '@/components/GlassPanel';
 import { Haken } from '@/components/Haken';
+import { Mulde, MuldenHandlung, MuldenReihe, MuldenZeile } from '@/components/Mulde';
+import { Schalter } from '@/components/Schalter';
 import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { PressableScale } from '@/components/PressableScale';
 import { Reveal } from '@/components/Reveal';
@@ -217,14 +218,19 @@ export default function EssenScreen() {
 
                   {offen && (
                     <Faltet>
-                      <View style={{ gap: Spacing.sm, paddingBottom: Spacing.sm }}>
+                      {/* EINE Mulde je Gericht. Der Zutaten-Editor bekommt
+                          Zeilen DERSELBEN Vertiefung statt einer zweiten —
+                          eine Mulde in einer Mulde wären zwei Vertiefungen
+                          ineinander, und die innere hätte keine Bedeutung. */}
+                      <View style={{ paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
+                      <Mulde>
                       {meine.map((z) => {
                         const status = zutatStatus(z, artikel ?? []);
                         const auf = bearbeitet === z.id;
                         return (
                         <View key={z.id}>
-                          <Listenzeile>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingLeft: Spacing.xl }}>
+                          <MuldenReihe>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
                           <View style={{ flex: 1 }}>
                             <Type variant="body" tone="text2" numberOfLines={1}>{z.text}</Type>
                             <Type variant="caption" tone="text3" numberOfLines={1}>
@@ -263,85 +269,95 @@ export default function EssenScreen() {
                             <Pencil size={16} color={auf ? colors.accentA : colors.text3} strokeWidth={2} />
                           </PressableScale>
                           </View>
-                          </Listenzeile>
+                          </MuldenReihe>
 
                           {auf && (
                             <Faltet>
-                              <View style={{ gap: Spacing.sm, paddingLeft: Spacing.xl, paddingVertical: Spacing.sm }}>
-                                <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-                                  <Feld
-                                    label={`${z.text} umbenennen`}
-                                    platzhalter="Zutat"
-                                    wert={z.text}
-                                    stil={{ flex: 1 }}
-                                    onSichern={(v) => v && zutatAendern.mutate({ id: z.id, patch: { text: v } })}
-                                  />
-                                  <Feld
-                                    label={`Menge von ${z.text}`}
-                                    platzhalter="Menge"
-                                    wert={z.menge}
-                                    stil={{ width: 96 }}
-                                    onSichern={(v) => zutatAendern.mutate({ id: z.id, patch: { menge: v } })}
-                                  />
-                                </View>
-                                {/* Das Einzige, was die App nicht selbst wissen
-                                    kann: was im Vorratsschrank steht.
+                              <MuldenZeile label="Zutat" breit einzug>
+                                <Feld
+                                  breit
+                                  label={`${z.text} umbenennen`}
+                                  platzhalter="Zutat"
+                                  wert={z.text}
+                                  onSichern={(v) => v && zutatAendern.mutate({ id: z.id, patch: { text: v } })}
+                                />
+                              </MuldenZeile>
+                              <MuldenZeile label="Menge" einzug>
+                                <Feld
+                                  nackt
+                                  label={`Menge von ${z.text}`}
+                                  platzhalter="egal"
+                                  wert={z.menge}
+                                  onSichern={(v) => zutatAendern.mutate({ id: z.id, patch: { menge: v } })}
+                                />
+                              </MuldenZeile>
+                              {/* Das Einzige, was die App nicht selbst wissen
+                                  kann: was im Vorratsschrank steht.
 
-                                    Ein CHIP, kein Haken: das hier ist keine
-                                    Erledigung, sondern eine Eigenschaft — Salz
-                                    hat man immer da. Der Haken bedeutet in
-                                    dieser App „abgehakt, die Zeile geht", und
-                                    genau das passiert hier nicht. Getönte
-                                    Fläche heißt „an", und dafür ist der Chip
-                                    das Bauteil. */}
-                                <Chip
-                                  label="Haben wir da"
-                                  active={z.habenWir}
+                                  Ein SCHALTER, kein Haken: das hier ist keine
+                                  Erledigung, sondern ein Zustand bis auf
+                                  weiteres — Salz hat man immer da. Der Haken
+                                  bedeutet in dieser App „abgehakt, die Zeile
+                                  geht", und genau das passiert hier nicht.
+                                  Vorher stand hier ein Chip; in einer Mulde
+                                  wäre das wieder eine Pille, die frei
+                                  herumliegt, und die Zeile hätte als einzige
+                                  keinen Wert rechts. */}
+                              <MuldenZeile label="Haben wir da" einzug>
+                                <Schalter
+                                  an={z.habenWir}
                                   accessibilityLabel={
                                     z.habenWir ? `${z.text} haben wir doch nicht` : `${z.text} haben wir da`
                                   }
-                                  onPress={() => zutatAendern.mutate({ id: z.id, patch: { habenWir: !z.habenWir } })}
-                                  style={{ alignSelf: 'flex-start' }}
-                                />
-                                <PressableScale
-                                  accessibilityLabel={`Zutat ${z.text} entfernen`}
                                   onPress={() => {
                                     hapticSelect();
-                                    setBearbeitet(null);
-                                    zutatLoeschen.mutate(z.id);
+                                    zutatAendern.mutate({ id: z.id, patch: { habenWir: !z.habenWir } });
                                   }}
-                                  style={{ alignSelf: 'flex-start', paddingVertical: Spacing.xs }}
-                                >
-                                  <Type variant="label" tone="accentB">Zutat streichen</Type>
-                                </PressableScale>
-                              </View>
+                                />
+                              </MuldenZeile>
+                              <MuldenHandlung
+                                einzug
+                                label="Zutat streichen"
+                                accessibilityLabel={`Zutat ${z.text} entfernen`}
+                                onPress={() => {
+                                  hapticSelect();
+                                  setBearbeitet(null);
+                                  zutatLoeschen.mutate(z.id);
+                                }}
+                              />
                             </Faltet>
                           )}
                         </View>
                         );
                       })}
 
-                      {/* Eine Stufe leiser als die Zeile oben: hier ist sie
-                          keine Tür, sondern eine Zeile im Formular. */}
-                      <Nebenzeile
-                        label="Zutat hinzufügen"
-                        platzhalter="Zutat"
-                        wert={zutatEntwurf}
-                        onWert={setZutatEntwurf}
-                        onAbschicken={() => {
-                          const text = zutatEntwurf.trim();
-                          if (!text) return;
-                          hapticSuccess();
-                          zutatAnlegen.mutate({ wunschId: w.id, text });
-                          setZutatEntwurf('');
-                        }}
-                        stil={{ marginLeft: Spacing.xl }}
-                      />
+                      {/* Die Eingabe ist die LETZTE ZEILE der Mulde, nicht
+                          etwas darunter: Zutaten anzuhängen gehört in denselben
+                          Block wie die Zutaten selbst. */}
+                      <MuldenReihe letzte={fehlen.length === 0}>
+                        <Nebenzeile
+                          nackt
+                          label="Zutat hinzufügen"
+                          platzhalter="Zutat hinzufügen …"
+                          wert={zutatEntwurf}
+                          onWert={setZutatEntwurf}
+                          onAbschicken={() => {
+                            const text = zutatEntwurf.trim();
+                            if (!text) return;
+                            hapticSuccess();
+                            zutatAnlegen.mutate({ wunschId: w.id, text });
+                            setZutatEntwurf('');
+                          }}
+                        />
+                      </MuldenReihe>
 
                       {/* Nur anbieten, wenn es wirklich etwas zu übernehmen
                           gibt — sonst wäre es ein Knopf, der nichts tut. */}
                       {fehlen.length > 0 && (
-                        <PressableScale
+                        <MuldenHandlung
+                          ton="accentA"
+                          davor={<Plus size={16} color={colors.accentA} strokeWidth={2.4} />}
+                          label={fehlen.length === 1 ? '1 Zutat auf die Liste' : `${fehlen.length} Zutaten auf die Liste`}
                           accessibilityLabel={
                             fehlen.length === 1
                               ? '1 Zutat auf die Einkaufsliste'
@@ -351,16 +367,11 @@ export default function EssenScreen() {
                             hapticSuccess();
                             uebernehmen.mutate({ zutaten: fehlen, gericht: w.gericht });
                           }}
-                          style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingLeft: Spacing.xl, paddingVertical: Spacing.xs }}
-                        >
-                          <Plus size={16} color={colors.accentA} strokeWidth={2.4} />
-                          <Type variant="label" tone="accentA">
-                            {fehlen.length === 1 ? '1 Zutat auf die Liste' : `${fehlen.length} Zutaten auf die Liste`}
-                          </Type>
-                        </PressableScale>
+                        />
                       )}
+                      </Mulde>
                       {meine.length > 0 && fehlen.length === 0 && (
-                        <Type variant="caption" tone="text3" style={{ paddingLeft: Spacing.xl }}>
+                        <Type variant="caption" tone="text3" style={{ paddingTop: Spacing.xs }}>
                           Alles beisammen.
                         </Type>
                       )}
