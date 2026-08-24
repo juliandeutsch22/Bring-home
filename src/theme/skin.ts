@@ -47,14 +47,29 @@ type Materialtoene = {
  * ohne Farbe — und ein drittes Alarm-Rot wird nicht vermisst.
  */
 const SKINS: Record<SkinName, Skin> = {
-  // Die Haut aus Stoa, unverändert übernommen: Marmor und Ägäis. Kuppel-Blau
-  // trägt die Handlung, der Oliven-Zweig erdet Zweitinformationen.
+  // Marmor und Ägäis. Kuppel-Blau trägt die Handlung, Terrakotta das
+  // Zweitrangige und das Wegnehmen.
+  //
+  // WARUM NICHT MEHR OLIV (Stoas Ton, #7E8C5C): Der Zweitton trägt hier zwei
+  // Rollen auf einmal — „sekundäre Auskunft" und „destruktiv". Als Oliv kam er
+  // auf der Platte nur auf 3,39:1 und lag damit unter der Lesbarkeitsschwelle;
+  // „Von der Liste nehmen" flüsterte, wo es hätte innehalten lassen sollen.
+  // Terrakotta bringt 4,91:1 und bleibt mediterran (Amphore, Dachziegel) statt
+  // ein Alarm-Rot zu sein. Es bleibt bei GENAU ZWEI Akzenten.
+  //
+  // Der Preis, und er ist echt: Die Regel oben verlangt einen deutlichen
+  // Graustufen-Abstand zwischen den Akzenten. Der ist geschrumpft — Blau liegt
+  // bei 0,115, Terrakotta bei 0,150 (Oliv lag bei 0,240). Beides zugleich geht
+  // auf einem cremefarbenen Grund nicht: Alles, was heller als 0,168 ist,
+  // reißt die 4,5:1 ohnehin. Lesbarkeit hat hier Vorrang vor dem
+  // Graustufen-Abstand, weil die beiden Töne nirgends nebeneinanderstehen und
+  // ihre Bedeutung am Wort hängt, nicht an der Farbe.
   stoa: {
     name: 'stoa',
-    beschreibung: 'Stoa — Marmor, Kuppel-Blau, Oliv',
+    beschreibung: 'Stoa — Marmor, Kuppel-Blau, Terrakotta',
     hell: {
       a: '#2B5FA6',
-      b: '#7E8C5C',
+      b: '#A8543A',
       // `bg` ist der GRUND, auf dem alles liegt — weiß. Er steht auch im Kopf
       // der ausgelieferten Seite (`scripts/pwa-huelle.mjs` liest ihn hier) und
       // färbt damit die Fläche hinter der App und die iOS-Statusleiste. Wer ihn
@@ -86,7 +101,7 @@ const SKINS: Record<SkinName, Skin> = {
     },
     dunkel: {
       a: '#7BA7DC',
-      b: '#9DAF7E',
+      b: '#CF8163',
       bg: '#0B0E13',
       bg2: '#1A1F28',
       bg3: '#1A2029',

@@ -21,6 +21,11 @@ export const R = { xs: 7, sm: 10, md: 13, lg: 16, xl: 18, xxl: 24, pill: 999 } a
 // denselben ruhigen Zweitton wie eine Info; die Oberfläche kann dadurch nicht
 // schreien. Die Töne selbst kommen aus `skin.ts`.
 //
+// Der Zweitton ist damit ein Kompromiss zwischen zwei Aufgaben: leise genug für
+// eine Nebenauskunft, deutlich genug fürs Wegnehmen. Als Oliv war er für das
+// Zweite zu leise — 3,39:1 auf der Platte, unter der Lesbarkeitsschwelle. Als
+// Terrakotta trägt er beides; die Messwerte stehen in `skin.ts`.
+//
 // Die Slots heißen bewusst `accentA`/`accentB` statt nach ihrer Farbe: in Stoa
 // hießen sie `teal` und `indigo` und waren längst keins von beidem mehr.
 export const lightColors = {
