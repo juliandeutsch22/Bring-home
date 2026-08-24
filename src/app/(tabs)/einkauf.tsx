@@ -194,7 +194,10 @@ export default function EinkaufScreen() {
                             onSichern={(v) => v && aendern.mutate({ id: a.id, patch: { text: v } })}
                           />
                         </MuldenZeile>
-                        <MuldenZeile label="Menge">
+                        {/* `letzte`, weil die Handlungszeile darunter ihren
+                            eigenen Trenner mitbringt — sonst lägen zwei
+                            Haarlinien übereinander. */}
+                        <MuldenZeile label="Menge" letzte>
                           <Feld
                             nackt
                             label={`Menge von ${a.text}`}

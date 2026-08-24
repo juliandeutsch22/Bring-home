@@ -303,7 +303,7 @@ export default function EssenScreen() {
                                   wäre das wieder eine Pille, die frei
                                   herumliegt, und die Zeile hätte als einzige
                                   keinen Wert rechts. */}
-                              <MuldenZeile label="Haben wir da" einzug>
+                              <MuldenZeile label="Haben wir da" einzug letzte>
                                 <Schalter
                                   an={z.habenWir}
                                   accessibilityLabel={
@@ -334,7 +334,9 @@ export default function EssenScreen() {
                       {/* Die Eingabe ist die LETZTE ZEILE der Mulde, nicht
                           etwas darunter: Zutaten anzuhängen gehört in denselben
                           Block wie die Zutaten selbst. */}
-                      <MuldenReihe letzte={fehlen.length === 0}>
+                      {/* Immer `letzte`: Folgt eine Handlungszeile, bringt die
+                          ihren eigenen Trenner mit. */}
+                      <MuldenReihe letzte>
                         <Nebenzeile
                           nackt
                           label="Zutat hinzufügen"

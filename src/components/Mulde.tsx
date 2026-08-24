@@ -33,6 +33,19 @@ import { useColors, useScheme } from '@/theme/ThemeProvider';
 import { R, Spacing } from '@/theme/theme.tokens';
 
 /**
+ * Das Polster der Mulde — an EINER Stelle, damit Zeilen, Trenner und
+ * Handlungen nicht auseinanderlaufen.
+ *
+ * Gemessen lag es vorher bei 16 px seitlich, aber nur 11 px nach oben und
+ * unten: Die erste und die letzte Zeile klebten an der Kante, während die
+ * Seiten Luft hatten. Eine Vertiefung, in der der Inhalt den Rand berührt,
+ * sieht aus, als wäre er hineingerutscht.
+ */
+const POLSTER = Spacing.md + Spacing.xs; // 20
+/** Unterzeilen einer Listenzeile rücken um eine Stufe ein. */
+const EINZUG = POLSTER + Spacing.lg;
+
+/**
  * Die Vertiefung selbst. Nimmt Zeilen auf, keine freien Felder.
  *
  * Die erste Fassung war zwei harte Striche auf einer flachen Tönung — und sah
@@ -73,7 +86,7 @@ export function Mulde({ children }: { children: React.ReactNode }) {
   //
   // Eine Mulde nimmt LICHT WEG, sie legt keine Farbe auf. Die Tiefe trägt der
   // Schlagschatten oben, nicht die Füllung.
-  const tiefe = isDark ? 'rgba(0,0,0,0.16)' : 'rgba(52,46,32,0.038)';
+  const tiefe = isDark ? 'rgba(0,0,0,0.11)' : 'rgba(52,46,32,0.026)';
 
   return (
     // DURCHSCHEINEND statt eigener Fläche — und das ist der Kern der Sache.
@@ -90,7 +103,7 @@ export function Mulde({ children }: { children: React.ReactNode }) {
     // Platte stehen und nimmt ihr nur Licht — bei jeder Höhe, ohne Bild, ohne
     // Skalierung. (Im dunklen Thema ist `sunk` ohnehin schon durchscheinend;
     // hier ziehen beide Fassungen endlich gleich.)
-    <View style={{ borderRadius: R.md, backgroundColor: tiefe, overflow: 'hidden' }}>
+    <View style={{ borderRadius: R.md, backgroundColor: tiefe, overflow: 'hidden', paddingVertical: Spacing.sm }}>
       {/* Der Schnitt selbst: die Kante, an der Stein weggenommen wurde. Eine
           Haarlinie, nicht mehr — sie ist scharf, aber sie ist dünn. */}
       <View
@@ -149,8 +162,8 @@ export function MuldenReihe({
     <View>
       <View
         style={{
-          paddingLeft: einzug ? Spacing.md + Spacing.lg : Spacing.md,
-          paddingRight: Spacing.md,
+          paddingLeft: einzug ? EINZUG : POLSTER,
+          paddingRight: POLSTER,
           paddingVertical: Spacing.xs,
           minHeight: 44,
           justifyContent: 'center',
@@ -163,7 +176,8 @@ export function MuldenReihe({
           style={{
             height: StyleSheet.hairlineWidth,
             backgroundColor: colors.border,
-            marginLeft: einzug ? Spacing.md + Spacing.lg : Spacing.md,
+            marginLeft: einzug ? EINZUG : POLSTER,
+            marginRight: POLSTER,
           }}
         />
       )}
@@ -204,11 +218,11 @@ export function MuldenZeile({
   breit?: boolean;
 }) {
   const colors = useColors();
-  const links = einzug ? Spacing.md + Spacing.lg : Spacing.md;
+  const links = einzug ? EINZUG : POLSTER;
   return (
     <View>
       {breit ? (
-        <View style={{ paddingLeft: links, paddingRight: Spacing.md, paddingVertical: Spacing.sm + 2, gap: 2 }}>
+        <View style={{ paddingLeft: links, paddingRight: POLSTER, paddingVertical: Spacing.sm + 2, gap: 2 }}>
           <Type variant="caption" tone="text3" numberOfLines={1}>{label}</Type>
           {children}
         </View>
@@ -219,7 +233,7 @@ export function MuldenZeile({
             alignItems: 'center',
             gap: Spacing.md,
             paddingLeft: links,
-            paddingRight: Spacing.md,
+            paddingRight: POLSTER,
             paddingVertical: Spacing.sm + 2,
             minHeight: 44,
           }}
@@ -237,6 +251,7 @@ export function MuldenZeile({
             height: StyleSheet.hairlineWidth,
             backgroundColor: colors.border,
             marginLeft: links,
+            marginRight: POLSTER,
           }}
         />
       )}
@@ -270,10 +285,13 @@ export function MuldenHandlung({
   davor?: React.ReactNode;
 }) {
   const colors = useColors();
-  const links = einzug ? Spacing.md + Spacing.lg : Spacing.md;
+  const links = einzug ? EINZUG : POLSTER;
   return (
     <View>
-      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: links }} />
+      {/* Beidseitig eingerückt, nicht rechts bündig: In einer Tabelle über die
+          volle Breite ist ein auslaufender Trenner richtig, in einem kleinen
+          gerundeten Block liest er sich als Ausbruch aus der Form. */}
+      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: links, marginRight: POLSTER }} />
       <PressableScale
         accessibilityLabel={accessibilityLabel}
         onPress={onPress}
@@ -283,7 +301,7 @@ export function MuldenHandlung({
           alignItems: 'center',
           gap: Spacing.sm,
           paddingLeft: links,
-          paddingRight: Spacing.md,
+          paddingRight: POLSTER,
           paddingVertical: Spacing.sm + 2,
           minHeight: 44,
         }}
