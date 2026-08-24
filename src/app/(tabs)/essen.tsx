@@ -22,10 +22,9 @@ import { View } from 'react-native';
 
 import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile, Nebenzeile } from '@/components/Eingabezeile';
-import { Feld } from '@/components/Feld';
 import { GlassPanel } from '@/components/GlassPanel';
 import { Haken } from '@/components/Haken';
-import { Mulde, MuldenHandlung, MuldenReihe, MuldenZeile } from '@/components/Mulde';
+import { Mulde, MuldenFeldZeile, MuldenHandlung, MuldenReihe, MuldenZeile } from '@/components/Mulde';
 import { Schalter } from '@/components/Schalter';
 import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { PressableScale } from '@/components/PressableScale';
@@ -273,24 +272,23 @@ export default function EssenScreen() {
 
                           {auf && (
                             <Faltet>
-                              <MuldenZeile label="Zutat" breit einzug>
-                                <Feld
-                                  breit
-                                  label={`${z.text} umbenennen`}
-                                  platzhalter="Zutat"
-                                  wert={z.text}
-                                  onSichern={(v) => v && zutatAendern.mutate({ id: z.id, patch: { text: v } })}
-                                />
-                              </MuldenZeile>
-                              <MuldenZeile label="Menge" einzug>
-                                <Feld
-                                  nackt
-                                  label={`Menge von ${z.text}`}
-                                  platzhalter="egal"
-                                  wert={z.menge}
-                                  onSichern={(v) => zutatAendern.mutate({ id: z.id, patch: { menge: v } })}
-                                />
-                              </MuldenZeile>
+                              <MuldenFeldZeile
+                                breit
+                                einzug
+                                label="Zutat"
+                                eingabeLabel={`${z.text} umbenennen`}
+                                platzhalter="Zutat"
+                                wert={z.text}
+                                onSichern={(v) => v && zutatAendern.mutate({ id: z.id, patch: { text: v } })}
+                              />
+                              <MuldenFeldZeile
+                                einzug
+                                label="Menge"
+                                eingabeLabel={`Menge von ${z.text}`}
+                                platzhalter="egal"
+                                wert={z.menge}
+                                onSichern={(v) => zutatAendern.mutate({ id: z.id, patch: { menge: v } })}
+                              />
                               {/* Das Einzige, was die App nicht selbst wissen
                                   kann: was im Vorratsschrank steht.
 

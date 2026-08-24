@@ -1,36 +1,31 @@
-// Mulde.tsx — der aufgeklappte Teil einer Zeile als VERTIEFUNG in der Platte.
+// Mulde.tsx — der aufgeklappte Teil einer Zeile: ein BLOCK aus Zeilen.
 //
-// Warum es das gibt: Vorher lagen dort zwei, drei gerundete Felder frei auf
-// dem Stein. Drei Dinge fehlten ihnen, und zusammen ließen sie den Editor
-// billig aussehen:
+// Vorgeschichte, weil sie die heutige Form erklärt: Zuerst lagen dort zwei,
+// drei gerundete Felder frei auf dem Stein. Das sah billig aus, und zwar aus
+// drei Gründen — sie gehörten zu nichts, sie hatten dieselbe Form wie das
+// große Eingabefeld am Kopf des Bildschirms, und sie waren unbeschriftet.
 //
-//  1. Sie gehörten zu nichts. Kein gemeinsamer Rahmen, keine geteilte Kante —
-//     nichts sagte, dass sie die Zeile darüber beschreiben.
-//  2. Sie hatten DIESELBE Form wie das große Eingabefeld am Kopf des
-//     Bildschirms. Ein Detail sah aus wie eine Haupthandlung; die Form trug
-//     keine Bedeutung mehr.
-//  3. Sie waren unbeschriftet. Man sah zwei graue Blasen und musste raten.
+// Die Antwort war zunächst eine echte VERTIEFUNG: getönte Fläche, Schnittkante
+// oben, Schlagschatten nach innen, Lichtgrat unten. Physikalisch stimmig, aber
+// im Gebrauch zu laut — der Block las sich als eingesetztes Fremdteil in der
+// Platte, egal wie leise die Tönung wurde.
 //
-// Die Antwort steht schon in `Glass.tsx`: „ein Feld ist eine Mulde im Stein,
-// kein aufgelegtes Plättchen." Bisher war das nur eine Tönung. Hier wird es
-// Physik — und zwar die UMGEKEHRTE der Platte:
+// Also ist die Fläche jetzt WEG. Kein Ton, keine Textur, kein Schatten: Der
+// Block liegt auf derselben Platte wie alles andere und ist aus demselben
+// Stein. Was ihn zusammenhält, sind nur noch Zeilen, Trenner und ein
+// gleichmäßiges Polster — Struktur statt Material.
 //
-//   Platte (erhaben):  Lichtgrat OBEN, Schattengrat UNTEN.
-//   Mulde (vertieft):  Schattengrat OBEN, Lichtgrat UNTEN.
-//
-// Das ist dieselbe Überlegung wie beim Meißel in `Type.tsx`, nur eine Ebene
-// höher: Licht kommt von links oben, also liegt der Schatten dort, wo der
-// Stein weggenommen wurde, und das Licht auf der gegenüberliegenden Wand.
-// Eine Mulde mit Lichtgrat oben sähe aus wie eine zweite, kleinere Platte —
-// und genau das war der alte Zustand.
-import { LinearGradient } from 'expo-linear-gradient';
+// Was dabei verloren geht, sollte man wissen: Ohne eigene Fläche sagt nichts
+// mehr auf einen Blick, wo der Block anfängt und aufhört. Das tragen jetzt
+// allein der Einzug und die Haarlinien.
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { Feld } from '@/components/Feld';
 import { PressableScale } from '@/components/PressableScale';
 import { Type } from '@/components/Type';
-import { useColors, useScheme } from '@/theme/ThemeProvider';
-import { R, Spacing } from '@/theme/theme.tokens';
+import { useColors } from '@/theme/ThemeProvider';
+import { Spacing } from '@/theme/theme.tokens';
 
 /**
  * Das Polster der Mulde — an EINER Stelle, damit Zeilen, Trenner und
@@ -46,97 +41,14 @@ const POLSTER = Spacing.md + Spacing.xs; // 20
 const EINZUG = POLSTER + Spacing.lg;
 
 /**
- * Die Vertiefung selbst. Nimmt Zeilen auf, keine freien Felder.
+ * Der Block. Trägt selbst nichts mehr — kein Ton, keine Kante, kein Schatten.
  *
- * Die erste Fassung war zwei harte Striche auf einer flachen Tönung — und sah
- * genau danach aus. Zwei Fehler, beide gelernt:
- *
- *  · Die Stärken waren VERTAUSCHT. Der Lichtgrat unten lag bei 2 px und 0,9
- *    Deckkraft und war das Lauteste am ganzen Element; der Schattengrat oben
- *    bei 0,14 war fast unsichtbar. Ein aufgemalter weißer Streifen also, dort
- *    wo Licht nur streifen sollte.
- *  · Es fehlte der SCHLAGSCHATTEN DER OBEREN WAND. Das ist der eigentliche
- *    Hinweis auf Tiefe: In einer echten Mulde wirft die obere Kante Schatten
- *    auf den Boden, und der läuft nach unten aus. Ohne ihn bleibt jede
- *    Vertiefung ein Rechteck mit Rändern, egal wie fein die Ränder sind.
- *
- * Deshalb steht hier ein Verlauf und keine Linie. Die Grate laufen außerdem
- * über die volle Breite und werden von der Rundung beschnitten, statt seitlich
- * eingerückt abzubrechen — eine Kante hört an der Ecke auf, nicht davor.
+ * Er bleibt als Bauteil bestehen, weil die Zeilen darin eine gemeinsame Klammer
+ * brauchen und weil die nächste Änderung sonst wieder an drei Bildschirmen
+ * einzeln passieren müsste.
  */
 export function Mulde({ children }: { children: React.ReactNode }) {
-  const isDark = useScheme() === 'dark';
-
-  // Licht kommt von links oben (wie im Backdrop und an der Platte). In einer
-  // VERTIEFUNG heißt das: Schatten oben und links, Licht unten und rechts —
-  // die Umkehrung der erhabenen Platte.
-  // Die Kante ist scharf, aber sie ist LEISE. Bei 0,20 las sie sich als
-  // gezogener Strich statt als Schnittkante — der Verlauf darunter trägt die
-  // Tiefe, die Linie sagt nur, wo sie anfängt.
-  const schatten = isDark ? 'rgba(0,0,0,0.45)' : 'rgba(52,46,32,0.13)';
-  const schattenWeich = isDark ? 'rgba(0,0,0,0.28)' : 'rgba(52,46,32,0.075)';
-  const licht = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.55)';
-  // DEUTLICH leiser als der `sunk`-Ton, aus dem sie gerechnet war.
-  //
-  // 0,085 traf zwar rechnerisch die alte Tönung, aber die lag auf einer
-  // NACKTEN Fläche; hier liegt sie über dem Marmor und verdunkelt ihn
-  // zusätzlich. Vor allem füllt die Mulde bei einem aufgeklappten Gericht fast
-  // die ganze Platte — ein großes, gleichmäßig dunkles Rechteck darin liest
-  // sich als eingesetztes Fremdteil, nicht als Vertiefung.
-  //
-  // Eine Mulde nimmt LICHT WEG, sie legt keine Farbe auf. Die Tiefe trägt der
-  // Schlagschatten oben, nicht die Füllung.
-  const tiefe = isDark ? 'rgba(0,0,0,0.11)' : 'rgba(52,46,32,0.026)';
-
-  return (
-    // DURCHSCHEINEND statt eigener Fläche — und das ist der Kern der Sache.
-    //
-    // Erst lag hier eine deckende Tönung plus ein eigenes Marmor-Blatt. Zwei
-    // Probleme auf einmal: Das Blatt ist 400x300 groß und wurde bei einer
-    // 437 px hohen Mulde nicht mitgestreckt, sondern hörte nach 300 px auf —
-    // gemessen. Der Rest stand ohne Korn da, und die Kante dazwischen lief
-    // quer durch den Block.
-    //
-    // Die Antwort war nicht ein größeres Blatt, sondern gar keins: Eine Mulde
-    // hat keinen EIGENEN Stein. Sie ist dieselbe Platte, nur weniger
-    // belichtet. Ein durchscheinender dunkler Ton lässt die Maserung der
-    // Platte stehen und nimmt ihr nur Licht — bei jeder Höhe, ohne Bild, ohne
-    // Skalierung. (Im dunklen Thema ist `sunk` ohnehin schon durchscheinend;
-    // hier ziehen beide Fassungen endlich gleich.)
-    <View style={{ borderRadius: R.md, backgroundColor: tiefe, overflow: 'hidden', paddingVertical: Spacing.sm }}>
-      {/* Der Schnitt selbst: die Kante, an der Stein weggenommen wurde. Eine
-          Haarlinie, nicht mehr — sie ist scharf, aber sie ist dünn. */}
-      <View
-        pointerEvents="none"
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: schatten }}
-      />
-      {/* Der Schlagschatten der oberen Wand, nach unten auslaufend. Das ist das
-          Stück, das Tiefe macht. */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={[schattenWeich, 'rgba(0,0,0,0)']}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 16 }}
-      />
-      {/* Dasselbe von links, deutlich schwächer: die dem Licht zugewandte Wand
-          liegt im Schatten ihrer eigenen Kante. */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={[schattenWeich, 'rgba(0,0,0,0)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 10, opacity: 0.7 }}
-      />
-      {/* Unten sammelt sich Licht auf der gegenüberliegenden Wand — als
-          Verlauf, nicht als Strich, und schwächer als der Schatten oben.
-          Tiefe liest man am Schatten, nicht am Glanz. */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={['rgba(0,0,0,0)', licht]}
-        style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 8 }}
-      />
-      {children}
-    </View>
-  );
+  return <View>{children}</View>;
 }
 
 /**
@@ -310,5 +222,61 @@ export function MuldenHandlung({
         <Type variant="body" tone={ton}>{label}</Type>
       </PressableScale>
     </View>
+  );
+}
+
+/**
+ * Eine Zeile mit Bezeichnung UND Eingabefeld, bei der die ganze Zeile das Feld
+ * fokussiert.
+ *
+ * Der Grund: Vorher lag das Eingabefeld nur in der rechten Spalte. Wer links
+ * auf „Menge" tippte — also auf das, was die Zeile benennt —, traf nichts, und
+ * bei einem leeren Feld war der treffbare Bereich nur so breit wie das Wort
+ * „egal". Ein Feld, dessen Trefferfläche man suchen muss, ist ein Feld, das man
+ * nicht benutzt.
+ *
+ * Jetzt hört die ganze Zeile zu: ein Tipp irgendwo darauf setzt den Cursor.
+ */
+export function MuldenFeldZeile({
+  label,
+  eingabeLabel,
+  platzhalter,
+  wert,
+  onSichern,
+  letzte = false,
+  einzug = false,
+  breit = false,
+}: {
+  label: string;
+  /** Der vorgelesene Name des Feldes — trägt den Titel des Eintrags. */
+  eingabeLabel: string;
+  platzhalter: string;
+  wert: string | null;
+  onSichern: (v: string | null) => void;
+  letzte?: boolean;
+  einzug?: boolean;
+  breit?: boolean;
+}) {
+  const feld = React.useRef<TextInput | null>(null);
+  return (
+    <Pressable
+      accessible={false}
+      onPress={() => feld.current?.focus()}
+      // Ohne das federt die Zeile beim Tippen — sie ist keine Handlung,
+      // sondern nur der Weg ins Feld.
+      style={{ cursor: 'text' } as never}
+    >
+      <MuldenZeile label={label} letzte={letzte} einzug={einzug} breit={breit}>
+        <Feld
+          eingabeRef={feld}
+          nackt={!breit}
+          breit={breit}
+          label={eingabeLabel}
+          platzhalter={platzhalter}
+          wert={wert}
+          onSichern={onSichern}
+        />
+      </MuldenZeile>
+    </Pressable>
   );
 }

@@ -21,9 +21,8 @@ import { View } from 'react-native';
 
 import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile } from '@/components/Eingabezeile';
-import { Feld } from '@/components/Feld';
 import { Haken } from '@/components/Haken';
-import { Mulde, MuldenHandlung, MuldenZeile } from '@/components/Mulde';
+import { Mulde, MuldenFeldZeile, MuldenHandlung } from '@/components/Mulde';
 import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PressableScale } from '@/components/PressableScale';
@@ -185,27 +184,25 @@ export default function EinkaufScreen() {
                         {/* Breit, weil der Name der INHALT ist und nicht eine
                             Eigenschaft: „Apfelessig / Balsamico non filtrato"
                             passt in keine rechte Spalte. */}
-                        <MuldenZeile label="Was" breit>
-                          <Feld
-                            breit
-                            label={`${a.text} umbenennen`}
-                            platzhalter="Was?"
-                            wert={a.text}
-                            onSichern={(v) => v && aendern.mutate({ id: a.id, patch: { text: v } })}
-                          />
-                        </MuldenZeile>
+                        <MuldenFeldZeile
+                          breit
+                          label="Was"
+                          eingabeLabel={`${a.text} umbenennen`}
+                          platzhalter="Was?"
+                          wert={a.text}
+                          onSichern={(v) => v && aendern.mutate({ id: a.id, patch: { text: v } })}
+                        />
                         {/* `letzte`, weil die Handlungszeile darunter ihren
                             eigenen Trenner mitbringt — sonst lägen zwei
                             Haarlinien übereinander. */}
-                        <MuldenZeile label="Menge" letzte>
-                          <Feld
-                            nackt
-                            label={`Menge von ${a.text}`}
-                            platzhalter="egal"
-                            wert={a.menge}
-                            onSichern={(v) => aendern.mutate({ id: a.id, patch: { menge: v } })}
-                          />
-                        </MuldenZeile>
+                        <MuldenFeldZeile
+                          letzte
+                          label="Menge"
+                          eingabeLabel={`Menge von ${a.text}`}
+                          platzhalter="egal"
+                          wert={a.menge}
+                          onSichern={(v) => aendern.mutate({ id: a.id, patch: { menge: v } })}
+                        />
                         {/* Die destruktive Handlung bekommt eine EIGENE Zeile in
                             derselben Mulde, statt darunter im Nichts zu hängen.
                             Ein Tipp, keine Rückfrage: hierher kommt man nur über

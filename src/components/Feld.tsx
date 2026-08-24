@@ -23,6 +23,7 @@ export function Feld({
   stil,
   nackt = false,
   breit = false,
+  eingabeRef,
 }: {
   label: string;
   platzhalter: string;
@@ -42,6 +43,12 @@ export function Feld({
    * kam nur durch Scrollen im Feld an den Rest.
    */
   breit?: boolean;
+  /**
+   * Zeiger auf das Eingabefeld, damit die ganze ZEILE es fokussieren kann.
+   * Ohne ihn traf man nur den rechten Bereich, in dem der Text steht — links
+   * neben der Bezeichnung passierte beim Tippen nichts.
+   */
+  eingabeRef?: React.RefObject<TextInput | null>;
 }) {
   const colors = useColors();
   const [entwurf, setEntwurf] = useState(wert ?? '');
@@ -54,6 +61,7 @@ export function Feld({
 
   const eingabe = (
     <TextInput
+      ref={eingabeRef}
       accessibilityLabel={label}
       value={entwurf}
       onChangeText={setEntwurf}

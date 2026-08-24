@@ -22,9 +22,8 @@ import { View } from 'react-native';
 
 import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile } from '@/components/Eingabezeile';
-import { Feld } from '@/components/Feld';
 import { Haken } from '@/components/Haken';
-import { Mulde, MuldenZeile } from '@/components/Mulde';
+import { Mulde, MuldenFeldZeile, MuldenZeile } from '@/components/Mulde';
 import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PressableScale } from '@/components/PressableScale';
@@ -159,24 +158,20 @@ export default function WohnungScreen() {
                 beschreibt die Aufgabe, nicht ihre Erledigung. */}
             <View style={{ paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
               <Mulde>
-                <MuldenZeile label="Wer macht das">
-                  <Feld
-                    nackt
-                    label={`Wer kümmert sich um ${a.titel}`}
-                    platzhalter="niemand"
-                    wert={a.person}
-                    onSichern={(v) => aendern.mutate({ id: a.id, patch: { person: v } })}
-                  />
-                </MuldenZeile>
-                <MuldenZeile label="Wartet auf">
-                  <Feld
-                    nackt
-                    label={`Worauf ${a.titel} wartet`}
-                    platzhalter="nichts"
-                    wert={a.wartetAuf}
-                    onSichern={(v) => aendern.mutate({ id: a.id, patch: { wartetAuf: v } })}
-                  />
-                </MuldenZeile>
+                <MuldenFeldZeile
+                  label="Wer macht das"
+                  eingabeLabel={`Wer kümmert sich um ${a.titel}`}
+                  platzhalter="niemand"
+                  wert={a.person}
+                  onSichern={(v) => aendern.mutate({ id: a.id, patch: { person: v } })}
+                />
+                <MuldenFeldZeile
+                  label="Wartet auf"
+                  eingabeLabel={`Worauf ${a.titel} wartet`}
+                  platzhalter="nichts"
+                  wert={a.wartetAuf}
+                  onSichern={(v) => aendern.mutate({ id: a.id, patch: { wartetAuf: v } })}
+                />
                 <MuldenZeile label="Kommt wieder" letzte>
                   <Wahlzeile
                     nackt
