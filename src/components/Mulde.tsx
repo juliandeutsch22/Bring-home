@@ -23,46 +23,97 @@
 // Stein weggenommen wurde, und das Licht auf der gegenüberliegenden Wand.
 // Eine Mulde mit Lichtgrat oben sähe aus wie eine zweite, kleinere Platte —
 // und genau das war der alte Zustand.
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { PressableScale } from '@/components/PressableScale';
 import { Type } from '@/components/Type';
 import { useColors, useScheme } from '@/theme/ThemeProvider';
 import { R, Spacing } from '@/theme/theme.tokens';
 
-/** Die Vertiefung selbst. Nimmt Zeilen auf, keine freien Felder. */
+// Dieselben Blätter wie in `Glass.tsx` — die Mulde liegt IN der Platte, also
+// muss die Maserung dieselbe sein. Zwei Steinsorten nebeneinander sähen aus
+// wie zwei Materialien.
+const MARMOR_HELL = require('../../assets/images/marble-light.jpg');
+const MARMOR_DUNKEL = require('../../assets/images/marble-dark.jpg');
+
+/**
+ * Die Vertiefung selbst. Nimmt Zeilen auf, keine freien Felder.
+ *
+ * Die erste Fassung war zwei harte Striche auf einer flachen Tönung — und sah
+ * genau danach aus. Zwei Fehler, beide gelernt:
+ *
+ *  · Die Stärken waren VERTAUSCHT. Der Lichtgrat unten lag bei 2 px und 0,9
+ *    Deckkraft und war das Lauteste am ganzen Element; der Schattengrat oben
+ *    bei 0,14 war fast unsichtbar. Ein aufgemalter weißer Streifen also, dort
+ *    wo Licht nur streifen sollte.
+ *  · Es fehlte der SCHLAGSCHATTEN DER OBEREN WAND. Das ist der eigentliche
+ *    Hinweis auf Tiefe: In einer echten Mulde wirft die obere Kante Schatten
+ *    auf den Boden, und der läuft nach unten aus. Ohne ihn bleibt jede
+ *    Vertiefung ein Rechteck mit Rändern, egal wie fein die Ränder sind.
+ *
+ * Deshalb steht hier ein Verlauf und keine Linie. Die Grate laufen außerdem
+ * über die volle Breite und werden von der Rundung beschnitten, statt seitlich
+ * eingerückt abzubrechen — eine Kante hört an der Ecke auf, nicht davor.
+ */
 export function Mulde({ children }: { children: React.ReactNode }) {
   const colors = useColors();
   const isDark = useScheme() === 'dark';
-  const radius = R.md;
-  const inset = radius * 0.7;
+
+  // Licht kommt von links oben (wie im Backdrop und an der Platte). In einer
+  // VERTIEFUNG heißt das: Schatten oben und links, Licht unten und rechts —
+  // die Umkehrung der erhabenen Platte.
+  const schatten = isDark ? 'rgba(0,0,0,0.60)' : 'rgba(52,46,32,0.20)';
+  const schattenWeich = isDark ? 'rgba(0,0,0,0.28)' : 'rgba(52,46,32,0.075)';
+  const licht = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.55)';
 
   return (
-    <View style={{ borderRadius: radius, backgroundColor: colors.sunk, overflow: 'hidden' }}>
-      {/* Schattengrat oben — hier wurde Stein weggenommen. */}
+    <View style={{ borderRadius: R.md, backgroundColor: colors.sunk, overflow: 'hidden' }}>
+      {/* DASSELBE Korn wie die Platte ringsum — und das ist keine Kosmetik.
+          Ohne Textur ist die Mulde eine glatte Fläche in einer gemaserten, und
+          sie liest sich als Kunststoff, der in Stein eingelassen wurde. Eine
+          Mulde ist derselbe Stein, nur tiefer; also trägt sie dieselbe
+          Maserung. Das war der eigentliche Grund, warum die erste Fassung
+          „flach und unnatürlich" wirkte — nicht die Grate. */}
+      {/* Im View verpackt wie in `Glass.tsx`: `Image` kennt `pointerEvents`
+          nicht. */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Image
+          source={isDark ? MARMOR_DUNKEL : MARMOR_HELL}
+          resizeMode="cover"
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
+      {/* Der Schnitt selbst: die Kante, an der Stein weggenommen wurde. Eine
+          Haarlinie, nicht mehr — sie ist scharf, aber sie ist dünn. */}
       <View
         pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: inset,
-          right: inset,
-          height: 2,
-          backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(60,55,40,0.14)',
-        }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: schatten }}
       />
-      {/* Lichtgrat unten — die gegenüberliegende Wand fängt das Licht. */}
-      <View
+      {/* Der Schlagschatten der oberen Wand, nach unten auslaufend. Das ist das
+          Stück, das Tiefe macht. */}
+      <LinearGradient
         pointerEvents="none"
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: inset,
-          right: inset,
-          height: 2,
-          backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.9)',
-        }}
+        colors={[schattenWeich, 'rgba(0,0,0,0)']}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 16 }}
+      />
+      {/* Dasselbe von links, deutlich schwächer: die dem Licht zugewandte Wand
+          liegt im Schatten ihrer eigenen Kante. */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[schattenWeich, 'rgba(0,0,0,0)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 10, opacity: 0.7 }}
+      />
+      {/* Unten sammelt sich Licht auf der gegenüberliegenden Wand — als
+          Verlauf, nicht als Strich, und schwächer als der Schatten oben.
+          Tiefe liest man am Schatten, nicht am Glanz. */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(0,0,0,0)', licht]}
+        style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 8 }}
       />
       {children}
     </View>
