@@ -53,6 +53,37 @@ export function Feld({
   const colors = useColors();
   const [entwurf, setEntwurf] = useState(wert ?? '');
 
+  // Eigener Zeiger, falls von außen keiner kommt: Das Mitwachsen braucht das
+  // Element, die Aufrufstelle aber nicht immer.
+  const eigener = React.useRef<TextInput | null>(null);
+  const feld = eingabeRef ?? eigener;
+
+  /**
+   * Das breite Feld wächst mit dem Text.
+   *
+   * Vorher stand hier eine feste Zahl Zeilen, und der Kommentar daneben nannte
+   * den Preis: „etwas Leerraum bei kurzen Namen". In der Hand war das kein
+   * bisschen „etwas" — unter „Eier" klaffte eine ganze Zeile bis zum Trenner,
+   * und der Block sah aus, als fehlte ihm etwas.
+   *
+   * Im Web ist das Feld ein `<textarea>`, und das wächst NICHT von selbst: Es
+   * hat eine Zeilenzahl und scrollt darüber hinaus. Der Weg dorthin ist der
+   * bekannte Zweischritt — Höhe auf `auto`, damit `scrollHeight` die WIRKLICHE
+   * Höhe des Inhalts meldet und nicht die eingestellte, dann diese Höhe
+   * setzen.
+   *
+   * Auf einem Gerät (nicht im Browser) gibt es kein `scrollHeight`. Dort
+   * greift der Effekt gar nicht — und muss es auch nicht: Ein mehrzeiliges
+   * Feld ohne feste Höhe wächst dort ohnehin mit.
+   */
+  React.useEffect(() => {
+    if (!breit) return;
+    const el = feld.current as unknown as { style?: { height: string }; scrollHeight?: number } | null;
+    if (!el?.style || typeof el.scrollHeight !== 'number') return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [breit, entwurf, feld]);
+
   const sichern = () => {
     const sauber = entwurf.trim();
     if (sauber === (wert ?? '')) return;
@@ -61,7 +92,7 @@ export function Feld({
 
   const eingabe = (
     <TextInput
-      ref={eingabeRef}
+      ref={feld}
       accessibilityLabel={label}
       value={entwurf}
       onChangeText={setEntwurf}
@@ -74,18 +105,19 @@ export function Feld({
       // dass die Eingabetaste das Feld schließt, statt einen Zeilenumbruch in
       // einen Artikelnamen zu schreiben.
       multiline={breit}
-      // AUSDRÜCKLICH zwei Zeilen, nicht der Zufallswert des Browsers: Ein
-      // mehrzeiliges Feld wächst im Web nicht mit, es hat eine feste Höhe.
-      // Zwei ist dieselbe Zahl, die auch die Listenzeile zeigt — der Editor
-      // zeigt damit nie weniger als die Liste. Der Preis ist etwas Leerraum
-      // bei kurzen Namen; die Alternative wäre ein Feld, in dem lange Namen
-      // wieder scrollen müssten, und genau das sollte weg.
-      numberOfLines={breit ? 2 : undefined}
+      // EINE Zeile als Ausgangspunkt, nicht mehr zwei: Von hier aus setzt der
+      // Effekt oben die Höhe auf die des Inhalts. Stünde hier weiter 2, wäre
+      // das der Boden, unter den das Feld nicht käme — genau der Leerraum,
+      // der weg soll.
+      numberOfLines={breit ? 1 : undefined}
       blurOnSubmit={breit ? true : undefined}
       style={[
         { fontSize: T.md, color: colors.text, minHeight: 22 },
         breit
-          ? { width: '100%', textAlign: 'left' }
+          // `overflow: hidden` gehört zum Mitwachsen dazu: Ohne es blitzt beim
+          // Tippen für einen Moment eine Bildlaufleiste auf, bevor der Effekt
+          // die neue Höhe setzt.
+          ? { width: '100%', textAlign: 'left', overflow: 'hidden' as const }
           : nackt
             // In der Mulde steht der Wert RECHTS und die Bezeichnung links —
             // wie in einer Einstellungsliste. Ohne eigenes Polster, das trägt
