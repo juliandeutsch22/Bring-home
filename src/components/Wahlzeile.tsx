@@ -49,7 +49,7 @@ export function Wahlzeile<T>({
   accessibilityPraefix?: string;
   /**
    * Ohne eigene Hülle und ohne Bezeichnung — für den Einsatz IN einer
-   * `Auflage`, die beides schon trägt. Übrig bleibt der Wert allein.
+   * `Mulde`, die beides schon trägt. Übrig bleibt der Wert allein.
    */
   nackt?: boolean;
 }) {

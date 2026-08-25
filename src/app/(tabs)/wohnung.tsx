@@ -23,7 +23,7 @@ import { View } from 'react-native';
 import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile } from '@/components/Eingabezeile';
 import { Haken } from '@/components/Haken';
-import { Auflage, AuflagenFeldZeile, AuflagenZeile } from '@/components/Auflage';
+import { Mulde, MuldenFeldZeile, MuldenZeile } from '@/components/Mulde';
 import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PressableScale } from '@/components/PressableScale';
@@ -154,25 +154,25 @@ export default function WohnungScreen() {
 
         {aufgeklappt && (
           <Faltet>
-            {/* Die Auflage sitzt unter dem TITEL, nicht unter dem Haken: sie
+            {/* Die Mulde sitzt unter dem TITEL, nicht unter dem Haken: sie
                 beschreibt die Aufgabe, nicht ihre Erledigung. */}
             <View style={{ paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
-              <Auflage>
-                <AuflagenFeldZeile
+              <Mulde>
+                <MuldenFeldZeile
                   label="Wer macht das"
                   eingabeLabel={`Wer kümmert sich um ${a.titel}`}
                   platzhalter="niemand"
                   wert={a.person}
                   onSichern={(v) => aendern.mutate({ id: a.id, patch: { person: v } })}
                 />
-                <AuflagenFeldZeile
+                <MuldenFeldZeile
                   label="Wartet auf"
                   eingabeLabel={`Worauf ${a.titel} wartet`}
                   platzhalter="nichts"
                   wert={a.wartetAuf}
                   onSichern={(v) => aendern.mutate({ id: a.id, patch: { wartetAuf: v } })}
                 />
-                <AuflagenZeile label="Kommt wieder" letzte>
+                <MuldenZeile label="Kommt wieder" letzte>
                   <Wahlzeile
                     nackt
                     label="Kommt wieder"
@@ -190,8 +190,8 @@ export default function WohnungScreen() {
                       })
                     }
                   />
-                </AuflagenZeile>
-              </Auflage>
+                </MuldenZeile>
+              </Mulde>
             </View>
           </Faltet>
         )}

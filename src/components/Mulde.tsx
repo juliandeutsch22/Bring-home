@@ -1,28 +1,34 @@
-// Auflage.tsx — der aufgeklappte Teil einer Zeile: ein BLOCK aus Zeilen.
+// Mulde.tsx — der aufgeklappte Teil einer Zeile: ein BLOCK aus Zeilen.
 //
-// Der Name ist Programm: Der Block liegt AUF der Platte, er ist nicht in sie
-// hineingeschnitten. Bis zuletzt hieß die Datei `Mulde.tsx`, und das war der
-// eigentliche Denkfehler — deshalb steht die Vorgeschichte hier, sie erklärt
-// jede Zeile weiter unten:
+// Eine Mulde mit HELLEM Grund. Das klingt zunächst falsch, deshalb steht die
+// ganze Vorgeschichte hier — sie erklärt jede Zeile weiter unten:
 //
 //  1. Zuerst lagen dort zwei, drei gerundete Felder frei auf dem Stein. Das sah
 //     billig aus, und zwar aus drei Gründen — sie gehörten zu nichts, sie
 //     hatten dieselbe Form wie das große Eingabefeld am Kopf des Bildschirms,
 //     und sie waren unbeschriftet.
-//  2. Die Antwort war eine echte VERTIEFUNG: getönte Fläche, Schnittkante oben,
-//     Schlagschatten nach innen, Lichtgrat unten. Physikalisch stimmig, aber im
+//  2. Die Antwort war eine dunkle Mulde: getönte Fläche, Schnittkante oben,
+//     Schlagschatten nach innen, Lichtgrat unten. Lehrbuchmäßig, aber im
 //     Gebrauch zu laut — der Block las sich als eingesetztes Fremdteil, egal
-//     wie leise die Tönung wurde. Gemessen war er 5,1 Helligkeitsstufen DUNKLER
-//     als die Platte; genau das macht ein Loch aus.
+//     wie leise die Tönung wurde. Gemessen war er 5,1 Helligkeitsstufen dunkler
+//     als die Platte.
 //  3. Dann gar keine Fläche mehr. Ehrlich, aber ohne Auskunft: Nichts sagte
 //     mehr, wo der Block anfängt und aufhört.
-//  4. Jetzt liegt er ERHABEN auf der Platte — hell statt dunkel. Das ist kein
-//     Geschmack, sondern Physik: Licht kommt im ganzen Backdrop von links oben.
-//     Eine höher liegende Fläche fängt mehr davon, also ist sie heller. Und
-//     dann kippt auch der Meißel mit: Lichtgrat OBEN, Schattengrat UNTEN —
-//     dieselbe Richtung wie bei der Steinplatte in `Glass.tsx`, die ja
-//     ebenfalls aufliegt. (In der Mulde lag es umgekehrt, und das musste so
-//     sein: In ein Loch fällt das Licht auf die untere Innenwand.)
+//  4. Dann erhaben und hell — Lichtgrat oben, Schattengrat unten.
+//  5. Jetzt: dieselbe HELLE Fläche wie in 4, aber der Meißel wieder wie in 2.
+//     Schnittkante oben, Lichtgrat unten.
+//
+// Warum eine helle Vertiefung nicht widersinnig ist: Was den Block in 2 zum
+// Fremdteil machte, war die TÖNUNG, nicht die Kante. Eine dunkle Fläche mitten
+// im Stein liest sich als anderes Material; eine helle liest sich als derselbe
+// Stein, nur sauberer — wie eine frisch ausgeschliffene Stelle, die noch nicht
+// nachgedunkelt ist. Die Auskunft „hier ist eine Stufe" trägt danach allein die
+// Kante, und die sagt mit dem Schnitt oben: nach innen, nicht nach oben.
+//
+// Ehrlich bleibt: Streng genommen wäre eine Vertiefung dunkler, weil Licht von
+// links oben auf die untere Innenwand fällt und die obere im Schatten liegt.
+// Der Grat oben stimmt damit, die Fläche nicht. Das ist eine bewusste
+// Abweichung — Fassung 2 war physikalisch korrekt und sah trotzdem falsch aus.
 //
 // Der Preis, den die helle Fläche kostet, steht in `FUELLUNG`.
 import React from 'react';
@@ -35,33 +41,33 @@ import { useColors, useScheme } from '@/theme/ThemeProvider';
 import { R, Spacing } from '@/theme/theme.tokens';
 
 /**
- * Das Polster der Auflage — an EINER Stelle, damit Zeilen, Trenner und
+ * Das Polster der Mulde — an EINER Stelle, damit Zeilen, Trenner und
  * Handlungen nicht auseinanderlaufen.
  *
  * Gemessen lag es vorher bei 16 px seitlich, aber nur 11 px nach oben und
  * unten: Die erste und die letzte Zeile klebten an der Kante, während die
- * Seiten Luft hatten. Eine Platte, auf der der Inhalt bis an die Kante läuft,
- * sieht aus, als wäre sie zu klein für ihn.
+ * Seiten Luft hatten. Eine Vertiefung, in der der Inhalt den Rand berührt,
+ * sieht aus, als wäre er hineingerutscht.
  */
 const POLSTER = Spacing.md + Spacing.xs; // 20
 /** Unterzeilen einer Listenzeile rücken um eine Stufe ein. */
 const EINZUG = POLSTER + Spacing.lg;
 
 /**
- * Wie hell die aufliegende Fläche ist — als Schleier über dem Marmor, nicht als
+ * Wie hell der Grund der Mulde ist — als Schleier über dem Marmor, nicht als
  * eigene Farbe. Die Maserung bleibt dadurch sichtbar, sie wird nur ruhiger.
  *
  * Die Dosis ist ein Handel, und der Preis ist gemessen (dpr 2, Graustufen,
  * Standardabweichung als Maß fürs Korn):
  *
- *   Fläche      Helligkeit   Korn    Δ zur Platte
- *   Platte         239,7     2,23        —
- *   0,40           246,3     1,33      +6,6
- *   0,65           249,9     0,77     +10,2   ← hier
- *   0,90           253,7     0,47     +14,0
- *   Mulde (alt)    234,6     2,15      −5,1
+ *   Fläche       Helligkeit   Korn    Δ zur Platte
+ *   Platte          241,8     2,3         —
+ *   0,40            246,7     1,38      +4,5
+ *   0,65            250,5     0,80      +8,3   ← hier
+ *   0,90            253,7     0,47     +14,0
+ *   dunkle Fassung  234,6     2,15      −5,1
  *
- * Je heller, desto eindeutiger liegt der Block oben — und desto weniger Stein
+ * Je heller, desto eindeutiger hebt sich der Block ab — und desto weniger Stein
  * ist er. Bei 0,65 ist er als eigene Ebene sofort lesbar und trägt noch
  * erkennbares Korn; ab 0,90 wird er zu Papier auf Marmor. Wer mehr Maserung
  * will, geht auf 0,40: Die Kante trägt die Definition dann fast allein.
@@ -76,17 +82,18 @@ const FUELLUNG = { hell: 'rgba(255,255,255,0.65)', dunkel: 'rgba(255,255,255,0.0
 const GRAT = 2;
 
 /**
- * Der Block: eine aufliegende Platte aus demselben Stein, nur höher.
+ * Der Block: eine flache Mulde im Stein, mit hell ausgeschliffenem Grund.
  *
- * Sie trägt bewusst KEINEN Schlagschatten. Ein Schatten hätte sie schweben
- * lassen; sie liegt aber auf, sie fliegt nicht. Was ihre Höhe erzählt, sind
- * allein die zwei Grate — und die sind, anders als ein Schatten, gerichtet:
- * Licht oben, Schatten unten, links-oben-Beleuchtung wie überall sonst.
+ * Sie trägt bewusst KEINEN Schlagschatten. Die frühere dunkle Fassung hatte
+ * einen nach innen, und genau der machte aus der Vertiefung ein eingesetztes
+ * Teil. Was die Stufe erzählt, sind allein die zwei Grate — und die sind,
+ * anders als ein Schatten, gerichtet: Schnitt oben, Licht unten, wie in einer
+ * Kerbe unter Licht von links oben.
  *
  * Und keine Umrandung, aus demselben Grund wie bei der Steinplatte: Wo eine
  * Kante behauen ist, wäre der Strich der letzte Rest „gezeichnetes Rechteck".
  */
-export function Auflage({ children }: { children: React.ReactNode }) {
+export function Mulde({ children }: { children: React.ReactNode }) {
   const dunkel = useScheme() === 'dark';
   // Die Grate enden vor den Ecken, sonst liefen sie in die Rundung hinein und
   // sähen abgeschnitten aus.
@@ -99,12 +106,18 @@ export function Auflage({ children }: { children: React.ReactNode }) {
         overflow: 'hidden',
         // Die Aufrufstellen rücken den Block links ein (er gehört zur Zeile
         // darüber), geben rechts aber nichts vor. Solange er keine Fläche
-        // hatte, war das egal; als Körper braucht er auch rechts Luft, sonst
+        // hatte, war das egal; mit Fläche braucht er auch rechts Luft, sonst
         // stößt seine Kante an die Kante der Platte.
         marginRight: Spacing.xs,
       }}
     >
       {children}
+      {/* OBEN die Schnittkante: In einer Vertiefung liegt die obere Innenwand
+          im Schatten, weil das Licht von links oben darüber hinwegstreicht.
+          Sie ist der Grat, der die Stufe wirklich erzählt — gemessen −31,6
+          gegen die Fläche, während der Lichtgrat unten nur +4,5 trägt. Dass
+          es so ungleich ist, liegt an der hellen Fläche: Nach unten ist noch
+          Weg bis Schwarz, nach oben kaum noch bis Weiß. */}
       <View
         pointerEvents="none"
         style={{
@@ -113,11 +126,12 @@ export function Auflage({ children }: { children: React.ReactNode }) {
           left: einzug,
           right: einzug,
           height: GRAT,
-          // Volles Weiß, nicht die 0,6 der Steinplatte: Die Fläche darunter ist
-          // schon fast weiß: ein halbdurchlässiger Grat verschwände in ihr.
-          backgroundColor: dunkel ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,1)',
+          backgroundColor: dunkel ? 'rgba(0,0,0,0.7)' : 'rgba(60,55,40,0.16)',
         }}
       />
+      {/* UNTEN der Lichtgrat: die untere Innenwand fängt das Licht. Volles
+          Weiß, nicht die 0,6 der Steinplatte — die Fläche darüber ist schon
+          fast weiß, ein halbdurchlässiger Grat verschwände in ihr. */}
       <View
         pointerEvents="none"
         style={{
@@ -126,7 +140,7 @@ export function Auflage({ children }: { children: React.ReactNode }) {
           left: einzug,
           right: einzug,
           height: GRAT,
-          backgroundColor: dunkel ? 'rgba(0,0,0,0.7)' : 'rgba(60,55,40,0.16)',
+          backgroundColor: dunkel ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,1)',
         }}
       />
     </View>
@@ -134,14 +148,14 @@ export function Auflage({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Eine freie Zeile in der Auflage — Inhalt statt Bezeichnung/Wert.
+ * Eine freie Zeile in der Mulde — Inhalt statt Bezeichnung/Wert.
  *
  * Für LISTEN: Zutaten haben keine Bezeichnungsspalte, sie sind selbst der
- * Inhalt. Sie bekommen trotzdem die Polsterung und den Trenner der Auflage,
- * damit eine Liste und ein Eigenschaftsblock auf derselben Platte dieselbe
+ * Inhalt. Sie bekommen trotzdem die Polsterung und den Trenner der Mulde,
+ * damit eine Liste und ein Eigenschaftsblock in derselben Vertiefung dieselbe
  * Zeilenhöhe und dieselbe Kante haben.
  */
-export function AuflagenReihe({
+export function MuldenReihe({
   children,
   letzte = false,
   einzug = false,
@@ -180,14 +194,14 @@ export function AuflagenReihe({
 }
 
 /**
- * Eine Zeile in der Auflage: Bezeichnung links, Wert rechts.
+ * Eine Zeile in der Mulde: Bezeichnung links, Wert rechts.
  *
  * Die Bezeichnung ist der eigentliche Gewinn gegenüber dem alten Zustand. Ein
  * Platzhalter verschwindet, sobald man tippt — danach steht dort ein Wert ohne
  * Namen, und beim nächsten Öffnen weiß niemand mehr, was in welchem Feld
  * stand. Eine Bezeichnung bleibt.
  */
-export function AuflagenZeile({
+export function MuldenZeile({
   label,
   children,
   /** Die letzte Zeile bekommt keinen Trenner. */
@@ -237,7 +251,7 @@ export function AuflagenZeile({
         </View>
       )}
       {/* An der TEXTKANTE eingerückt, nicht über die volle Breite: so liest
-          sich die Auflage als ein Block mit Zeilen, nicht als Stapel von
+          sich die Mulde als ein Block mit Zeilen, nicht als Stapel von
           Kästchen. */}
       {!letzte && (
         <View
@@ -254,14 +268,14 @@ export function AuflagenZeile({
 }
 
 /**
- * Eine Handlung als eigene Zeile in der Auflage — für Löschen und Ähnliches.
+ * Eine Handlung als eigene Zeile in der Mulde — für Löschen und Ähnliches.
  *
  * Vorher hing so ein Satz frei unter den Feldern, ohne Trenner und ohne
- * Fläche; er sah aus wie vergessen. In der Auflage bekommt er dieselbe Zeilenhöhe
+ * Fläche; er sah aus wie vergessen. In der Mulde bekommt er dieselbe Zeilenhöhe
  * wie alles andere und einen Trenner darüber. Der Zweitton bleibt: In dieser
  * App schreit auch das Löschen nicht.
  */
-export function AuflagenHandlung({
+export function MuldenHandlung({
   label,
   accessibilityLabel,
   onPress,
@@ -319,7 +333,7 @@ export function AuflagenHandlung({
  *
  * Jetzt hört die ganze Zeile zu: ein Tipp irgendwo darauf setzt den Cursor.
  */
-export function AuflagenFeldZeile({
+export function MuldenFeldZeile({
   label,
   eingabeLabel,
   platzhalter,
@@ -348,7 +362,7 @@ export function AuflagenFeldZeile({
       // sondern nur der Weg ins Feld.
       style={{ cursor: 'text' } as never}
     >
-      <AuflagenZeile label={label} letzte={letzte} einzug={einzug} breit={breit}>
+      <MuldenZeile label={label} letzte={letzte} einzug={einzug} breit={breit}>
         <Feld
           eingabeRef={feld}
           nackt={!breit}
@@ -358,7 +372,7 @@ export function AuflagenFeldZeile({
           wert={wert}
           onSichern={onSichern}
         />
-      </AuflagenZeile>
+      </MuldenZeile>
     </Pressable>
   );
 }

@@ -24,7 +24,7 @@ import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile, Nebenzeile } from '@/components/Eingabezeile';
 import { GlassPanel } from '@/components/GlassPanel';
 import { Haken } from '@/components/Haken';
-import { Auflage, AuflagenFeldZeile, AuflagenHandlung, AuflagenReihe, AuflagenZeile } from '@/components/Auflage';
+import { Mulde, MuldenFeldZeile, MuldenHandlung, MuldenReihe, MuldenZeile } from '@/components/Mulde';
 import { Schalter } from '@/components/Schalter';
 import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { PressableScale } from '@/components/PressableScale';
@@ -217,18 +217,18 @@ export default function EssenScreen() {
 
                   {offen && (
                     <Faltet>
-                      {/* EINE Auflage je Gericht. Der Zutaten-Editor bekommt
-                          Zeilen DERSELBEN Platte statt einer zweiten — eine
-                          Auflage auf einer Auflage wären zwei Stufen
-                          übereinander, und die obere hätte keine Bedeutung. */}
+                      {/* EINE Mulde je Gericht. Der Zutaten-Editor bekommt
+                          Zeilen DERSELBEN Vertiefung statt einer zweiten —
+                          eine Mulde in einer Mulde wären zwei Vertiefungen
+                          ineinander, und die innere hätte keine Bedeutung. */}
                       <View style={{ paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
-                      <Auflage>
+                      <Mulde>
                       {meine.map((z) => {
                         const status = zutatStatus(z, artikel ?? []);
                         const auf = bearbeitet === z.id;
                         return (
                         <View key={z.id}>
-                          <AuflagenReihe>
+                          <MuldenReihe>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
                           <View style={{ flex: 1 }}>
                             <Type variant="body" tone="text2" numberOfLines={1}>{z.text}</Type>
@@ -268,11 +268,11 @@ export default function EssenScreen() {
                             <Pencil size={16} color={auf ? colors.accentA : colors.text3} strokeWidth={2} />
                           </PressableScale>
                           </View>
-                          </AuflagenReihe>
+                          </MuldenReihe>
 
                           {auf && (
                             <Faltet>
-                              <AuflagenFeldZeile
+                              <MuldenFeldZeile
                                 breit
                                 einzug
                                 label="Zutat"
@@ -281,7 +281,7 @@ export default function EssenScreen() {
                                 wert={z.text}
                                 onSichern={(v) => v && zutatAendern.mutate({ id: z.id, patch: { text: v } })}
                               />
-                              <AuflagenFeldZeile
+                              <MuldenFeldZeile
                                 einzug
                                 label="Menge"
                                 eingabeLabel={`Menge von ${z.text}`}
@@ -297,11 +297,11 @@ export default function EssenScreen() {
                                   weiteres — Salz hat man immer da. Der Haken
                                   bedeutet in dieser App „abgehakt, die Zeile
                                   geht", und genau das passiert hier nicht.
-                                  Vorher stand hier ein Chip; in einer Auflage
+                                  Vorher stand hier ein Chip; in einer Mulde
                                   wäre das wieder eine Pille, die frei
                                   herumliegt, und die Zeile hätte als einzige
                                   keinen Wert rechts. */}
-                              <AuflagenZeile label="Haben wir da" einzug letzte>
+                              <MuldenZeile label="Haben wir da" einzug letzte>
                                 <Schalter
                                   an={z.habenWir}
                                   accessibilityLabel={
@@ -312,8 +312,8 @@ export default function EssenScreen() {
                                     zutatAendern.mutate({ id: z.id, patch: { habenWir: !z.habenWir } });
                                   }}
                                 />
-                              </AuflagenZeile>
-                              <AuflagenHandlung
+                              </MuldenZeile>
+                              <MuldenHandlung
                                 einzug
                                 label="Zutat streichen"
                                 accessibilityLabel={`Zutat ${z.text} entfernen`}
@@ -329,12 +329,12 @@ export default function EssenScreen() {
                         );
                       })}
 
-                      {/* Die Eingabe ist die LETZTE ZEILE der Auflage, nicht
+                      {/* Die Eingabe ist die LETZTE ZEILE der Mulde, nicht
                           etwas darunter: Zutaten anzuhängen gehört in denselben
                           Block wie die Zutaten selbst. */}
                       {/* Immer `letzte`: Folgt eine Handlungszeile, bringt die
                           ihren eigenen Trenner mit. */}
-                      <AuflagenReihe letzte>
+                      <MuldenReihe letzte>
                         <Nebenzeile
                           nackt
                           label="Zutat hinzufügen"
@@ -349,12 +349,12 @@ export default function EssenScreen() {
                             setZutatEntwurf('');
                           }}
                         />
-                      </AuflagenReihe>
+                      </MuldenReihe>
 
                       {/* Nur anbieten, wenn es wirklich etwas zu übernehmen
                           gibt — sonst wäre es ein Knopf, der nichts tut. */}
                       {fehlen.length > 0 && (
-                        <AuflagenHandlung
+                        <MuldenHandlung
                           ton="accentA"
                           davor={<Plus size={16} color={colors.accentA} strokeWidth={2.4} />}
                           label={fehlen.length === 1 ? '1 Zutat auf die Liste' : `${fehlen.length} Zutaten auf die Liste`}
@@ -369,7 +369,7 @@ export default function EssenScreen() {
                           }}
                         />
                       )}
-                      </Auflage>
+                      </Mulde>
                       {meine.length > 0 && fehlen.length === 0 && (
                         <Type variant="caption" tone="text3" style={{ paddingTop: Spacing.xs }}>
                           Alles beisammen.

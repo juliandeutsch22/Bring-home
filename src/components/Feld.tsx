@@ -32,9 +32,9 @@ export function Feld({
   /** Für nebeneinanderliegende Felder (Text `flex: 1`, Menge feste Breite). */
   stil?: ViewStyle;
   /**
-   * Ohne eigene Hülle — für den Einsatz IN einer `Auflage`, die die Fläche
-   * schon trägt. Ein gerundetes Feld auf einer gerundeten Auflage wären zwei
-   * Platten übereinander, und die obere hätte keine Bedeutung.
+   * Ohne eigene Hülle — für den Einsatz IN einer `Mulde`, die die Fläche
+   * schon trägt. Ein gerundetes Feld in einer gerundeten Mulde wären zwei
+   * Vertiefungen ineinander, und die zweite hätte keine Bedeutung.
    */
   nackt?: boolean;
   /**
@@ -87,9 +87,9 @@ export function Feld({
         breit
           ? { width: '100%', textAlign: 'left' }
           : nackt
-            // Auf der Auflage steht der Wert RECHTS und die Bezeichnung links
-            // — wie in einer Einstellungsliste. Ohne eigenes Polster, das
-            // trägt die Zeile der Auflage.
+            // In der Mulde steht der Wert RECHTS und die Bezeichnung links —
+            // wie in einer Einstellungsliste. Ohne eigenes Polster, das trägt
+            // die Zeile der Mulde.
             ? { width: '100%', textAlign: 'right' }
             : { flex: 1, paddingVertical: Spacing.sm },
         webNoOutline,

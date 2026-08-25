@@ -149,9 +149,9 @@ export function Nebenzeile({
   onAbschicken: () => void;
   stil?: object;
   /**
-   * Ohne eigene Hülle — für den Einsatz IN einer `Auflage`. Sonst läge auf
-   * ihr eine gerundete Pille, also genau das frei herumliegende Feld, das die
-   * Auflage abgeschafft hat.
+   * Ohne eigene Hülle — für den Einsatz IN einer `Mulde`. Sonst läge in der
+   * Vertiefung eine gerundete Pille, also genau das frei herumliegende Feld,
+   * das die Mulde abgeschafft hat.
    */
   nackt?: boolean;
 }) {
