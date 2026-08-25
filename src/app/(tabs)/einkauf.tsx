@@ -22,7 +22,7 @@ import { View } from 'react-native';
 import { DisclosureChevron } from '@/components/DisclosureChevron';
 import { Eingabezeile } from '@/components/Eingabezeile';
 import { Haken } from '@/components/Haken';
-import { Mulde, MuldenFeldZeile, MuldenHandlung } from '@/components/Mulde';
+import { Auflage, AuflagenFeldZeile, AuflagenHandlung } from '@/components/Auflage';
 import { Faltet, Listenzeile } from '@/components/Listenzeile';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PressableScale } from '@/components/PressableScale';
@@ -178,13 +178,13 @@ export default function EinkaufScreen() {
                 {auf && (
                   <Faltet>
                     <View style={{ paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
-                      <Mulde>
+                      <Auflage>
                         {/* Der Name darf nicht leer werden — ein namenloser
                             Punkt wäre auf der Liste nicht wiederzufinden. */}
                         {/* Breit, weil der Name der INHALT ist und nicht eine
                             Eigenschaft: „Apfelessig / Balsamico non filtrato"
                             passt in keine rechte Spalte. */}
-                        <MuldenFeldZeile
+                        <AuflagenFeldZeile
                           breit
                           label="Was"
                           eingabeLabel={`${a.text} umbenennen`}
@@ -195,7 +195,7 @@ export default function EinkaufScreen() {
                         {/* `letzte`, weil die Handlungszeile darunter ihren
                             eigenen Trenner mitbringt — sonst lägen zwei
                             Haarlinien übereinander. */}
-                        <MuldenFeldZeile
+                        <AuflagenFeldZeile
                           letzte
                           label="Menge"
                           eingabeLabel={`Menge von ${a.text}`}
@@ -204,10 +204,10 @@ export default function EinkaufScreen() {
                           onSichern={(v) => aendern.mutate({ id: a.id, patch: { menge: v } })}
                         />
                         {/* Die destruktive Handlung bekommt eine EIGENE Zeile in
-                            derselben Mulde, statt darunter im Nichts zu hängen.
+                            derselben Auflage, statt darunter im Nichts zu hängen.
                             Ein Tipp, keine Rückfrage: hierher kommt man nur über
                             den Stift, das Löschen ist also schon der zweite. */}
-                        <MuldenHandlung
+                        <AuflagenHandlung
                           label="Von der Liste nehmen"
                           accessibilityLabel={`${a.text} entfernen`}
                           onPress={() => {
@@ -216,7 +216,7 @@ export default function EinkaufScreen() {
                             loeschen.mutate(a.id);
                           }}
                         />
-                      </Mulde>
+                      </Auflage>
                     </View>
                   </Faltet>
                 )}

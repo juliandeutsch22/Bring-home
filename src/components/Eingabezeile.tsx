@@ -7,7 +7,7 @@
 //
 // Drei Dinge machen den Unterschied, alle aus Stoa übernommen:
 //
-//  1. Eine `Glass`-PILLE statt Rahmen und Mulde. Dieselbe Steinsorte wie die
+//  1. Eine `Glass`-PILLE statt Rahmen und Kasten. Dieselbe Steinsorte wie die
 //     Platten darunter, nur rund — sie gehört sichtbar zur selben Welt.
 //  2. Ein eigener Schatten, flach und weit. Er hebt die Zeile über alles
 //     andere. Bewusst KEIN Token: sonst wandert der Wert durch die App und
@@ -131,7 +131,7 @@ export const ZEILE_LUFT = Spacing.xs;
 /**
  * Dasselbe Feld eine Stufe leiser: für Eingaben INNERHALB einer Platte
  * (Zutat zu einem Gericht). Es ist dort keine Tür, sondern eine Zeile im
- * Formular — und trägt deshalb wieder Mulde und Haarlinie.
+ * Formular — und trägt deshalb wieder eingesenkte Fläche und Haarlinie.
  */
 export function Nebenzeile({
   label,
@@ -149,9 +149,9 @@ export function Nebenzeile({
   onAbschicken: () => void;
   stil?: object;
   /**
-   * Ohne eigene Hülle — für den Einsatz IN einer `Mulde`. Sonst läge in der
-   * Vertiefung eine gerundete Pille, also genau das frei herumliegende Feld,
-   * das die Mulde abgeschafft hat.
+   * Ohne eigene Hülle — für den Einsatz IN einer `Auflage`. Sonst läge auf
+   * ihr eine gerundete Pille, also genau das frei herumliegende Feld, das die
+   * Auflage abgeschafft hat.
    */
   nackt?: boolean;
 }) {
