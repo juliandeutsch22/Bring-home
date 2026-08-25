@@ -60,6 +60,11 @@ const STATUS_WORT: Record<ZutatStatus, string> = {
   fehlt: 'fehlt',
   aufDerListe: 'auf der Liste',
   imWagen: 'im Wagen',
+  // „im Vorrat" und „haben wir da" heißen dasselbe und stehen trotzdem
+  // getrennt da: Das eine hat die App aus einem Einkauf abgeleitet, das andere
+  // habt ihr gesetzt. Wer sieht, warum eine Zutat als vorhanden gilt, weiß
+  // auch, wo er nachschauen muss, wenn sie es doch nicht ist.
+  imVorrat: 'im Vorrat',
   habenWir: 'haben wir da',
 };
 

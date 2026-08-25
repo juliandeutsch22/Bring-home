@@ -6,6 +6,7 @@ import {
   RHYTHMEN,
   fehlendeZutaten,
   findeArtikel,
+  imVorratSeit,
   istKochbar,
   istOffen,
   kuerze,
@@ -26,6 +27,7 @@ const artikel = (p: Partial<Artikel> & { id: string; text: string }): Artikel =>
   listeId: HAUSHALT,
   menge: null,
   erledigtAm: null,
+  vorratAb: null,
   vonWem: null,
   sort: 0,
   updatedAt: '2026-08-17T10:00:00.000Z',
@@ -71,7 +73,29 @@ describe('teileListe', () => {
   });
 
   it('kommt mit einer leeren Liste klar', () => {
-    expect(teileListe([])).toEqual({ offen: [], imWagen: [] });
+    expect(teileListe([])).toEqual({ offen: [], imWagen: [], imVorrat: [] });
+  });
+
+  it('zählt Eingeräumtes NICHT mehr zum Wagen', () => {
+    // Der Fall, an dem die ganze Bahn hängt: `erledigtAm` bleibt beim
+    // Einräumen stehen. Wer nur danach fragt, hätte den Artikel an zwei Orten
+    // zugleich — oder, je nach Reihenfolge der Filter, an keinem.
+    const a = artikel({
+      id: '1',
+      text: 'Milch',
+      erledigtAm: '2026-08-17T11:00:00.000Z',
+      vorratAb: '2026-08-17T12:00:00.000Z',
+    });
+    const { offen, imWagen, imVorrat } = teileListe([a]);
+    expect(offen).toEqual([]);
+    expect(imWagen).toEqual([]);
+    expect(imVorrat.map((x) => x.id)).toEqual(['1']);
+  });
+
+  it('legt das zuletzt Eingeräumte im Vorrat obenauf', () => {
+    const alt = artikel({ id: '1', text: 'Reis', erledigtAm: 'x', vorratAb: '2026-08-10T09:00:00.000Z' });
+    const neu = artikel({ id: '2', text: 'Nudeln', erledigtAm: 'x', vorratAb: '2026-08-17T09:00:00.000Z' });
+    expect(teileListe([alt, neu]).imVorrat.map((x) => x.id)).toEqual(['2', '1']);
   });
 });
 
@@ -110,6 +134,32 @@ describe('zutatStatus', () => {
     const vorrat = zutat({ id: 'z2', text: 'Salz', habenWir: true });
     expect(zutatStatus(vorrat, [])).toBe('habenWir');
     expect(zutatStatus(vorrat, [artikel({ id: 'a1', text: 'Salz' })])).toBe('habenWir');
+  });
+
+  it('sagt „imVorrat", wenn sie eingeräumt wurde', () => {
+    const eingeraeumt = artikel({
+      id: 'a1',
+      text: 'Linsen',
+      erledigtAm: '2026-08-17T11:00:00.000Z',
+      vorratAb: '2026-08-17T12:00:00.000Z',
+    });
+    expect(zutatStatus(linsen, [eingeraeumt])).toBe('imVorrat');
+  });
+
+  it('lässt DA SEIN das GEPLANTE ausstechen, wenn es beides gibt', () => {
+    // Der Normalfall, seit es den Vorrat gibt: Eine Packung steht im Schrank,
+    // und auf der Liste steht Nachschub. Wer hier den Listen-Eintrag gewinnen
+    // ließe, erklärte ein Gericht für unkochbar, WEIL jemand nachbestellt hat.
+    const imSchrank = artikel({
+      id: 'a1',
+      text: 'Linsen',
+      erledigtAm: '2026-08-10T11:00:00.000Z',
+      vorratAb: '2026-08-10T12:00:00.000Z',
+    });
+    const nachschub = artikel({ id: 'a2', text: 'Linsen' });
+    expect(zutatStatus(linsen, [imSchrank, nachschub])).toBe('imVorrat');
+    // Und andersherum sortiert, damit es nicht am Zufall der Reihenfolge hängt.
+    expect(zutatStatus(linsen, [nachschub, imSchrank])).toBe('imVorrat');
   });
 });
 
@@ -150,7 +200,7 @@ describe('istKochbar', () => {
     expect(istKochbar(zutaten, [gekauft('a1', 'Linsen'), gekauft('a2', 'Spätzle')])).toBe(true);
   });
 
-  it('zählt den Vorrat als vorhanden', () => {
+  it('zählt „haben wir da" als vorhanden', () => {
     const mitVorrat = [zutat({ id: 'z1', text: 'Salz', habenWir: true }), zutat({ id: 'z2', text: 'Öl', habenWir: true })];
     expect(istKochbar(mitVorrat, [])).toBe(true);
   });
@@ -169,6 +219,44 @@ describe('istKochbar', () => {
     // Sonst trüge jeder frisch eingetragene Wunsch sofort einen Haken, und das
     // Zeichen hieße nur noch „hat keine Zutaten".
     expect(istKochbar([], [])).toBe(false);
+  });
+
+  it('überlebt das Einräumen des Wagens — der Grund, warum es den Vorrat gibt', () => {
+    // Vorher LÖSCHTE das Leeren des Wagens, und genau hier kippte der Haken
+    // zurück: Am Samstag gekauft, am Sonntag wieder „fehlt".
+    const eingeraeumt = (id: string, text: string) =>
+      artikel({ id, text, erledigtAm: '2026-08-15T11:00:00.000Z', vorratAb: '2026-08-15T12:00:00.000Z' });
+    expect(istKochbar(zutaten, [eingeraeumt('a1', 'Linsen'), eingeraeumt('a2', 'Spätzle')])).toBe(true);
+  });
+});
+
+describe('imVorratSeit', () => {
+  const JETZT = new Date('2026-08-17T12:00:00.000Z');
+  const seit = (iso: string) =>
+    imVorratSeit(artikel({ id: 'a1', text: 'Milch', erledigtAm: 'x', vorratAb: iso }), JETZT);
+
+  it('zählt in TAGEN, nicht in Datum', () => {
+    expect(seit('2026-08-14T09:00:00.000Z')).toBe('seit 3 Tagen');
+  });
+
+  it('kennt heute und gestern beim Namen', () => {
+    expect(seit('2026-08-17T08:00:00.000Z')).toBe('seit heute');
+    expect(seit('2026-08-16T22:00:00.000Z')).toBe('seit gestern');
+  });
+
+  it('rechnet in KALENDERTAGEN, nicht in 24-Stunden-Schritten', () => {
+    // 14 Stunden her, aber gestern: „seit heute" wäre schlicht falsch.
+    expect(seit('2026-08-16T22:00:00.000Z')).toBe('seit gestern');
+  });
+
+  it('sagt bei einem Zeitpunkt in der Zukunft nicht „seit in 2 Tagen"', () => {
+    // Eine vorgehende Uhr auf dem anderen Gerät reicht dafür schon.
+    expect(seit('2026-08-19T09:00:00.000Z')).toBe('seit heute');
+  });
+
+  it('bleibt still, wenn nichts dasteht', () => {
+    expect(imVorratSeit(artikel({ id: 'a1', text: 'Milch' }), JETZT)).toBe('');
+    expect(seit('kein Datum')).toBe('');
   });
 });
 

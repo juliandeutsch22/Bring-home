@@ -23,8 +23,22 @@ export type Artikel = Sync & {
   text: string;
   /** Frei getippt („2", „500 g", „eine Packung") — bewusst kein Zahlenfeld. */
   menge: string | null;
-  /** Im Wagen. Bleibt stehen, bis der Wagen geleert wird. */
+  /** Im Wagen. Bleibt stehen, bis der Wagen eingeräumt wird. */
   erledigtAm: string | null; // ISO
+  /**
+   * Eingeräumt — der Artikel steht seitdem im Vorrat.
+   *
+   * Warum ein eigenes Feld und nicht ein zweiter Sinn für `erledigtAm`: Ein
+   * Artikel hat jetzt DREI Orte (Liste, Wagen, Vorrat), und drei Zustände
+   * passen nicht in ein Feld mit zwei Werten. `erledigtAm` bleibt daneben
+   * stehen — es sagt, wann gekauft wurde, `vorratAb`, wann eingeräumt.
+   *
+   * Der Zeitpunkt ist nicht Zierde: Er trägt das „seit 3 Tagen" in der Zeile.
+   * Ein Vorrat ohne Alter wäre eine Liste von Behauptungen; mit Alter sieht man
+   * ihm an, wie viel man ihm noch glauben will. Die App leitet daraus NICHTS
+   * ab — nichts verfällt von selbst. Was leer ist, wisst nur ihr.
+   */
+  vorratAb: string | null; // ISO
   /** Wer es hinzugefügt hat — null = ich selbst. */
   vonWem: string | null;
   sort: number;

@@ -92,7 +92,18 @@ const text = (w: unknown): string | null => (w == null ? null : String(w));
 const artikelSorte: Sorte<Artikel> = {
   tabelle: 'artikel',
   ablage: () => holeArtikel() as Ablage<Artikel, never>,
-  hin: (s, h) => ({ ...rumpfHin(s, h), text: s.text, menge: s.menge, erledigt_am: s.erledigtAm, von_wem: s.vonWem }),
+  hin: (s, h) => ({
+    ...rumpfHin(s, h),
+    text: s.text,
+    menge: s.menge,
+    erledigt_am: s.erledigtAm,
+    // `?? null` statt `s.vorratAb`: Ein Satz, der noch aus der Zeit vor dem
+    // Vorrat auf dem Gerät liegt, hat das Feld gar nicht. Ohne das `null`
+    // ginge `undefined` hinaus, die Spalte bliebe beim Schreiben ausgespart,
+    // und ein auf dem Server stehender Wert überlebte das Überschreiben.
+    vorrat_ab: s.vorratAb ?? null,
+    von_wem: s.vonWem,
+  }),
   her: (r) => ({
     ...rumpfHer(r),
     // `listeId` steht nicht auf dem Server: es gibt bis Etappe 5 genau eine
@@ -102,6 +113,10 @@ const artikelSorte: Sorte<Artikel> = {
     text: String(r.text ?? ''),
     menge: text(r.menge),
     erledigtAm: r.erledigt_am == null ? null : iso(r.erledigt_am),
+    // `== null` fängt auch das `undefined` eines Servers, auf dem die
+    // Wanderung 07 noch nicht gelaufen ist: Dort gibt es die Spalte nicht,
+    // und alles käme sonst als „steht im Vorrat" zurück.
+    vorratAb: r.vorrat_ab == null ? null : iso(r.vorrat_ab),
     vonWem: text(r.von_wem),
   }),
 };

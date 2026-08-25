@@ -46,12 +46,23 @@ export function useArtikelAnlegen() {
   });
 }
 
-/** Abhaken und wieder herausnehmen — ein Aufruf, zwei Richtungen. */
+/**
+ * Abhaken und wieder herausnehmen — ein Aufruf, zwei Richtungen.
+ *
+ * Beide Richtungen räumen `vorratAb` mit ab, und das ist kein Beiwerk: Der
+ * Weg Liste → Wagen → Vorrat ist eine Bahn, und wer zurückgeht, muss ganz
+ * zurückgehen. Bliebe `vorratAb` stehen, läge derselbe Artikel für
+ * `teileListe` im Vorrat und wäre für `istImWagen` zugleich nicht im Wagen —
+ * er verschwände aus allen drei Abschnitten.
+ */
 export function useArtikelUmschalten() {
   const frisch = useFrischArtikel();
   return useMutation({
     mutationFn: ({ id, imWagen }: { id: string; imWagen: boolean }) =>
-      holeArtikel().aendern(id, { erledigtAm: imWagen ? null : new Date().toISOString() }),
+      holeArtikel().aendern(id, {
+        erledigtAm: imWagen ? null : new Date().toISOString(),
+        vorratAb: null,
+      }),
     onSuccess: frisch,
   });
 }
@@ -72,20 +83,50 @@ export function useArtikelLoeschen() {
 }
 
 /**
- * Wagen leeren: alles Abgehakte auf einmal weg.
+ * Wagen einräumen: alles Gekaufte wandert in den Vorrat.
+ *
+ * Vorher hieß das „Wagen leeren" und LÖSCHTE. Genau daran hing der Fehler, den
+ * der Vorrat behebt: Mit dem Wagen ging jedes Wissen über den Einkauf verloren,
+ * und ein Gericht, dessen Zutaten am Samstag gekauft wurden, stand am Sonntag
+ * wieder auf „fehlt". Der Wagen wird also nicht mehr geleert, er wird
+ * ausgeräumt — dorthin, wo die Sachen auch in der Wohnung landen.
  *
  * Die Schleife läuft in der `mutationFn`, nicht in einem Callback — was nach
  * einer Mutation noch passieren muss, gehört dorthin. (In Stoa hing genau so
  * eine Nacharbeit an einem `mutate`-Callback und lief nie, weil sich der
  * Aufrufer vorher schloss.)
  */
-export function useWagenLeeren() {
+export function useWagenEinraeumen() {
   const frisch = useFrischArtikel();
   return useMutation({
     mutationFn: async () => {
+      // EIN Zeitpunkt für alle: Was zusammen eingeräumt wurde, soll auch
+      // zusammen altern. Ein `new Date()` je Durchlauf ergäbe Zeilen, die sich
+      // um Millisekunden unterscheiden und in der Sortierung auseinanderlaufen.
+      const jetzt = new Date().toISOString();
       const alle = await holeArtikel().alle();
-      for (const a of alle) if (a.erledigtAm !== null) await holeArtikel().loeschen(a.id);
+      for (const a of alle) {
+        if (a.erledigtAm !== null && a.vorratAb === null) {
+          await holeArtikel().aendern(a.id, { vorratAb: jetzt });
+        }
+      }
     },
+    onSuccess: frisch,
+  });
+}
+
+/**
+ * Aufgebraucht — und damit gleich wieder auf die Liste.
+ *
+ * Zwei Handlungen in einer, weil sie im Alltag eine sind: Wer merkt, dass die
+ * Milch leer ist, will sie nachkaufen. Der Weg „aufbrauchen, dann neu tippen"
+ * wäre zweimal dasselbe sagen. Wer etwas NICHT nachkaufen will, nimmt es über
+ * den Stift ganz weg.
+ */
+export function useVorratAufgebraucht() {
+  const frisch = useFrischArtikel();
+  return useMutation({
+    mutationFn: (id: string) => holeArtikel().aendern(id, { vorratAb: null, erledigtAm: null }),
     onSuccess: frisch,
   });
 }

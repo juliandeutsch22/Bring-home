@@ -5,22 +5,42 @@
 // Teil, an dem die App wirklich hängt.
 import type { Artikel, Aufgabe, Wunsch, Zutat } from '@/data/types';
 
-/** Im Wagen oder noch zu holen? */
+/**
+ * Ein Artikel hat DREI Orte, und sie liegen hintereinander:
+ *
+ *   Liste  →  Wagen  →  Vorrat  →  weg
+ *
+ * `erledigtAm` sagt, wann gekauft wurde, `vorratAb`, wann eingeräumt. Weil
+ * beide stehen bleiben, muss „im Wagen" das Eingeräumte ausdrücklich
+ * ausschließen — sonst stünde ein Artikel an zwei Orten zugleich.
+ */
+export function istImVorrat(a: Artikel): boolean {
+  return a.vorratAb !== null;
+}
+
+/** Im Wagen: gekauft, aber noch nicht eingeräumt. */
 export function istImWagen(a: Artikel): boolean {
-  return a.erledigtAm !== null;
+  return a.erledigtAm !== null && a.vorratAb === null;
 }
 
 /**
- * Die zwei Hälften der Einkaufsliste. Im Wagen liegt unten und zuletzt
- * Abgehaktes obenauf — beim Einkaufen sieht man so, was gerade hineinging,
- * und kann einen Fehlgriff sofort zurücknehmen.
+ * Die drei Teile der Einkaufsliste. Wagen und Vorrat liegen unten und tragen
+ * das zuletzt Dazugekommene obenauf — beim Einkaufen sieht man so, was gerade
+ * hineinging, und kann einen Fehlgriff sofort zurücknehmen.
  */
-export function teileListe(artikel: Artikel[]): { offen: Artikel[]; imWagen: Artikel[] } {
-  const offen = artikel.filter((a) => !istImWagen(a));
+export function teileListe(artikel: Artikel[]): {
+  offen: Artikel[];
+  imWagen: Artikel[];
+  imVorrat: Artikel[];
+} {
+  const offen = artikel.filter((a) => a.erledigtAm === null && a.vorratAb === null);
   const imWagen = artikel
     .filter(istImWagen)
     .sort((a, b) => (a.erledigtAm! < b.erledigtAm! ? 1 : -1));
-  return { offen, imWagen };
+  const imVorrat = artikel
+    .filter(istImVorrat)
+    .sort((a, b) => (a.vorratAb! < b.vorratAb! ? 1 : -1));
+  return { offen, imWagen, imVorrat };
 }
 
 /**
@@ -40,25 +60,47 @@ export function findeArtikel(artikel: Artikel[], text: string): Artikel | undefi
 }
 
 /**
+ * ALLE Artikel dieses Namens — es kann mehr als einen geben.
+ *
+ * Seit es den Vorrat gibt, ist das der Normalfall und kein Sonderfall: Im
+ * Schrank steht eine Packung Milch, und auf der Liste steht Milch, weil eine
+ * nicht reicht. Wer nur den ersten Treffer nimmt, bekommt je nach
+ * Sortierreihenfolge mal den einen, mal den anderen — und die Zutat wechselt
+ * ihre Auskunft, ohne dass jemand etwas getan hätte.
+ */
+export function findeAlleArtikel(artikel: Artikel[], text: string): Artikel[] {
+  const n = normalisiere(text);
+  return artikel.filter((a) => normalisiere(a.text) === n);
+}
+
+/**
  * Wo steht eine Zutat gerade?
  *
- *  · `habenWir`     — von Hand gesetzt. Der Vorratsschrank ist das Einzige,
- *                     was die App nicht wissen kann.
- *  · `aufDerListe`  — steht offen auf der Einkaufsliste.
- *  · `imWagen`      — schon eingekauft.
+ *  · `habenWir`     — von Hand gesetzt, gilt dauerhaft. Salz und Öl.
+ *  · `imWagen`      — gerade eingekauft, noch nicht eingeräumt.
+ *  · `imVorrat`     — eingeräumt und seitdem im Schrank.
+ *  · `aufDerListe`  — steht offen auf der Einkaufsliste, also geplant.
  *  · `fehlt`        — muss noch besorgt werden.
  *
  * Bewusst ABGELEITET statt gespeichert (bis auf `habenWir`): ein Feld
  * „schon übernommen" würde lügen, sobald jemand den Artikel von der
  * Einkaufsliste wieder entfernt.
+ *
+ * Die Reihenfolge ist eine Rangfolge, und sie ist keine Willkür: DA SEIN
+ * schlägt GEPLANT. Steht Milch im Vorrat und zusätzlich auf der Liste, dann
+ * hat man Milch — die Zeile auf der Liste sagt nur, dass noch mehr kommt.
+ * Andersherum hieße es, ein Gericht sei nicht kochbar, weil jemand Nachschub
+ * eingetragen hat.
  */
-export type ZutatStatus = 'habenWir' | 'aufDerListe' | 'imWagen' | 'fehlt';
+export type ZutatStatus = 'habenWir' | 'imWagen' | 'imVorrat' | 'aufDerListe' | 'fehlt';
 
 export function zutatStatus(z: Zutat, artikel: Artikel[]): ZutatStatus {
   if (z.habenWir) return 'habenWir';
-  const treffer = findeArtikel(artikel, z.text);
-  if (!treffer) return 'fehlt';
-  return istImWagen(treffer) ? 'imWagen' : 'aufDerListe';
+  const treffer = findeAlleArtikel(artikel, z.text);
+  if (treffer.length === 0) return 'fehlt';
+  if (treffer.some(istImWagen)) return 'imWagen';
+  if (treffer.some(istImVorrat)) return 'imVorrat';
+  return 'aufDerListe';
 }
 
 /**
@@ -84,8 +126,14 @@ export function fehlendeZutaten(zutaten: Zutat[], artikel: Artikel[]): Zutat[] {
  *
  * Der Unterschied, an dem es hängt: „steht auf der Einkaufsliste" heißt
  * geplant, nicht vorhanden. Wer vor dem Herd steht, hat von einem Eintrag auf
- * einer Liste nichts. Wirklich da ist nur, was im Wagen liegt (gekauft) oder
- * was ihr immer dahabt.
+ * einer Liste nichts. Wirklich da ist, was im Wagen liegt (gerade gekauft),
+ * was im Vorrat steht (eingeräumt) oder was ihr immer dahabt.
+ *
+ * Der Vorrat ist der Grund, warum es diese Funktion überhaupt noch gibt. Bevor
+ * es ihn gab, warf das Leeren des Wagens jedes Wissen über einen Einkauf weg —
+ * ein Gericht, dessen Zutaten am Samstag gekauft wurden, stand am Sonntag
+ * wieder auf „fehlt". Nicht weil etwas fehlte, sondern weil niemand mehr
+ * wusste, dass es da war.
  *
  * Ein Gericht ohne Zutaten ist NICHT kochbar, sondern ungeplant — sonst wäre
  * jeder frisch eingetragene Wunsch sofort mit einem Haken versehen, und das
@@ -95,7 +143,7 @@ export function istKochbar(zutaten: Zutat[], artikel: Artikel[]): boolean {
   if (zutaten.length === 0) return false;
   return zutaten.every((z) => {
     const s = zutatStatus(z, artikel);
-    return s === 'habenWir' || s === 'imWagen';
+    return s === 'habenWir' || s === 'imWagen' || s === 'imVorrat';
   });
 }
 
@@ -240,6 +288,31 @@ export function wiederIn(a: Aufgabe, jetzt: Date = new Date()): string {
   if (tage <= 0) return 'wieder dran';
   if (tage === 1) return 'wieder morgen';
   return `wieder in ${tage} Tagen`;
+}
+
+/**
+ * „seit heute", „seit gestern", „seit 3 Tagen" — wie lange das schon im Vorrat
+ * steht.
+ *
+ * Der Abstand in TAGEN, aus demselben Grund wie bei `wiederIn`: „seit dem 22."
+ * muss man erst nachrechnen. Und bewusst ohne jede Wertung — kein „läuft bald
+ * ab", keine Farbe, keine Warnung. Die App weiß nicht, was in eurem Schrank
+ * verdirbt; sie sagt nur, wie alt ihre eigene Auskunft ist.
+ */
+export function imVorratSeit(a: Artikel, jetzt: Date = new Date()): string {
+  if (a.vorratAb == null) return '';
+  const ab = Date.parse(a.vorratAb);
+  if (Number.isNaN(ab)) return '';
+  const heute = new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate()).getTime();
+  const tag = new Date(ab);
+  const dann = new Date(tag.getFullYear(), tag.getMonth(), tag.getDate()).getTime();
+  const tage = Math.round((heute - dann) / 86400000);
+  // Eine Uhr, die vorgeht, oder ein Gerät in einer anderen Zeitzone kann einen
+  // Zeitpunkt in der Zukunft liefern. „seit in 2 Tagen" wäre Unsinn — dann
+  // lieber die kleinste wahre Aussage.
+  if (tage <= 0) return 'seit heute';
+  if (tage === 1) return 'seit gestern';
+  return `seit ${tage} Tagen`;
 }
 
 /** So viele Erledigte werden gezeigt; der Rest wird beziffert. */

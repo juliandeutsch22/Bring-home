@@ -48,12 +48,18 @@ create table if not exists artikel (
   haushalt_id uuid not null references haushalte (id) on delete cascade,
   text text not null,
   menge text,
+  -- Gekauft. Bleibt stehen, wenn der Artikel in den Vorrat wandert: Die zwei
+  -- Zeitpunkte beantworten zwei Fragen — wann gekauft, wann eingeräumt.
   erledigt_am timestamptz,
+  -- Eingeräumt, steht seitdem im Vorrat. NULL = auf der Liste oder im Wagen.
+  -- Siehe migration-07-vorrat.sql.
+  vorrat_ab timestamptz,
   von_wem text,
   sort double precision not null default 0,
   updated_at timestamptz not null,
   server_at timestamptz not null default now(),
-  deleted_at timestamptz
+  deleted_at timestamptz,
+  constraint vorrat_nach_kauf check (vorrat_ab is null or erledigt_am is not null)
 );
 
 create table if not exists wuensche (

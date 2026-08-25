@@ -16,6 +16,7 @@ const baue = (e: Neu, sort: number): Artikel => ({
   text: e.text,
   menge: null,
   erledigtAm: null,
+  vorratAb: null,
   vonWem: null,
   sort,
   updatedAt: '2026-08-17T10:00:00.000Z',

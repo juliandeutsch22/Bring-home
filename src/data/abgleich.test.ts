@@ -10,6 +10,7 @@ const artikel = (p: Partial<Artikel> & { id: string; updatedAt: string }): Artik
   text: 'Milch',
   menge: null,
   erledigtAm: null,
+  vorratAb: null,
   vonWem: null,
   sort: 0,
   deletedAt: null,

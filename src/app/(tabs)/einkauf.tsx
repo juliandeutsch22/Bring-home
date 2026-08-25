@@ -1,12 +1,23 @@
 // einkauf.tsx — die Liste. Der Grund, warum es die App gibt.
 //
 // Aufbau: Eingabe ganz oben (ein Gedanke, ein Feld, sofort), darunter was noch
-// fehlt, darunter der Wagen — eingeklappt, weil er beim Einkaufen niemanden
-// interessiert.
+// fehlt, darunter Wagen und Vorrat — beide eingeklappt, weil sie beim
+// Einkaufen niemanden interessieren.
+//
+// Ein Artikel wandert dabei eine Bahn entlang, und jeder Abschnitt ist eine
+// Station darauf:
+//
+//     Liste  →  Wagen  →  Vorrat  →  weg
+//
+// Der Vorrat ist die jüngste Station und der Grund, warum es ihn gibt: Vorher
+// endete die Bahn beim Wagen, und „Wagen leeren" löschte. Damit ging jedes
+// Wissen über einen Einkauf verloren — ein Gericht, dessen Zutaten am Samstag
+// gekauft wurden, stand am Sonntag wieder auf „fehlt". Nicht weil etwas
+// fehlte, sondern weil niemand mehr wusste, dass es da war.
 //
 // Drei Entscheidungen, die man sehen können sollte:
-//  · Abhaken LÖSCHT nicht. Was im Wagen liegt, bleibt sichtbar, bis jemand den
-//    Wagen leert — ein Fehlgriff ist damit ein Tipp, keine Rekonstruktion.
+//  · Abhaken LÖSCHT nicht. Was im Wagen liegt, bleibt sichtbar, bis jemand ihn
+//    einräumt — ein Fehlgriff ist damit ein Tipp, keine Rekonstruktion.
 //  · Ein Artikel, den es schon gibt, wird nicht verdoppelt. Wer „Milch" ein
 //    zweites Mal tippt, meint dieselbe Milch.
 //  · Rechts steht ein STIFT, kein Mülleimer. Die ganze Zeile hakt ab — das ist
@@ -37,12 +48,13 @@ import {
   useArtikelAnlegen,
   useArtikelLoeschen,
   useArtikelUmschalten,
-  useWagenLeeren,
+  useVorratAufgebraucht,
+  useWagenEinraeumen,
 } from '@/data/queries';
 import { useHaushalt } from '@/data/haushalt';
 import { hapticSelect, hapticSuccess } from '@/lib/haptics';
 import { useNachklang } from '@/lib/nachklang';
-import { findeArtikel, kuerze, teileListe } from '@/lib/listenLogik';
+import { findeArtikel, imVorratSeit, kuerze, teileListe } from '@/lib/listenLogik';
 import { useColors } from '@/theme/ThemeProvider';
 import { Spacing } from '@/theme/theme.tokens';
 
@@ -55,24 +67,34 @@ export default function EinkaufScreen() {
   const umschalten = useArtikelUmschalten();
   const aendern = useArtikelAendern();
   const loeschen = useArtikelLoeschen();
-  const wagenLeeren = useWagenLeeren();
+  const einraeumen = useWagenEinraeumen();
+  const aufgebraucht = useVorratAufgebraucht();
 
   const [entwurf, setEntwurf] = useState('');
   const [zeigeWagen, setZeigeWagen] = useState(false);
+  const [zeigeVorrat, setZeigeVorrat] = useState(false);
   /** Welcher Artikel gerade seinen Editor offen hat. Immer höchstens einer. */
   const [bearbeitet, setBearbeitet] = useState<string | null>(null);
   // Erst den Haken zeigen, dann die Zeile fortschaffen (siehe `nachklang.ts`).
   const { markiert, anstossen } = useNachklang();
 
-  const { offen, imWagen } = useMemo(() => teileListe(artikel ?? []), [artikel]);
+  const { offen, imWagen, imVorrat } = useMemo(() => teileListe(artikel ?? []), [artikel]);
   const [gezeigterWagen, restWagen] = useMemo(() => kuerze(imWagen), [imWagen]);
+  const [gezeigterVorrat, restVorrat] = useMemo(() => kuerze(imVorrat), [imVorrat]);
 
   const hinzufuegen = () => {
     const text = entwurf.trim();
     if (!text) return;
-    // Steht es schon offen da, ist nichts zu tun. Liegt es im Wagen, kommt es
+    // Steht es schon OFFEN da, ist nichts zu tun. Liegt es im Wagen, kommt es
     // wieder heraus — man tippt es ja, weil man es (noch einmal) braucht.
-    const vorhanden = findeArtikel(artikel ?? [], text);
+    //
+    // Was im VORRAT steht, wird bewusst nicht angefasst: Wer „Milch" tippt,
+    // während eine Packung im Schrank steht, will Nachschub, nicht die alte
+    // Packung zurück auf die Liste. Es entsteht also eine zweite Zeile
+    // desselben Namens — und genau dafür kann `zutatStatus` mehrere Treffer
+    // (siehe `findeAlleArtikel`).
+    const offeneOderImWagen = (artikel ?? []).filter((a) => a.vorratAb === null);
+    const vorhanden = findeArtikel(offeneOderImWagen, text);
     if (vorhanden && vorhanden.erledigtAm === null) {
       setEntwurf('');
       return;
@@ -263,15 +285,18 @@ export default function EinkaufScreen() {
                 <DisclosureChevron open={zeigeWagen} color={colors.text3} />
               </PressableScale>
               {zeigeWagen && (
+                // `accentA`, nicht mehr der Zweitton: Einräumen NIMMT nichts
+                // mehr weg, es bringt den Einkauf an seinen Platz. Der
+                // Zweitton war richtig, solange der Knopf löschte.
                 <PressableScale
-                  accessibilityLabel="Wagen leeren"
+                  accessibilityLabel="Wagen in den Vorrat einräumen"
                   onPress={() => {
                     hapticSuccess();
-                    wagenLeeren.mutate();
+                    einraeumen.mutate();
                   }}
                   style={{ padding: Spacing.xs }}
                 >
-                  <Type variant="label" tone="accentB">Leeren</Type>
+                  <Type variant="label" tone="accentA">Einräumen</Type>
                 </PressableScale>
               )}
             </View>
@@ -305,6 +330,133 @@ export default function EinkaufScreen() {
                   </Type>
                 )}
               </GlassPanel>
+              </Faltet>
+            )}
+          </Faltet>
+        </Reveal>
+      )}
+
+      {/* Der Vorrat steht UNTER dem Wagen, weil er in der Bahn dahinter liegt.
+          Und er trägt KEINEN Mäander: Der ist einmal je Bildschirm erlaubt,
+          und er sitzt schon über dem Wagen. */}
+      {imVorrat.length > 0 && (
+        <Reveal delay={140}>
+          <Faltet>
+            <Seam marginVertical={Spacing.md} />
+            <PressableScale
+              accessibilityLabel={zeigeVorrat ? 'Vorrat einklappen' : 'Vorrat ansehen'}
+              onPress={() => {
+                hapticSelect();
+                setZeigeVorrat((v) => !v);
+              }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}
+            >
+              <Type variant="eyebrow" tone="text3">Im Vorrat · {imVorrat.length}</Type>
+              <DisclosureChevron open={zeigeVorrat} color={colors.text3} />
+            </PressableScale>
+            {zeigeVorrat && (
+              <Faltet>
+                <GlassPanel style={{ marginTop: Spacing.xs }}>
+                  {gezeigterVorrat.map((a, i) => {
+                    const auf = bearbeitet === a.id;
+                    return (
+                    <View key={a.id}>
+                      <Listenzeile versatz={i}>
+                      {i > 0 && <Seam marginVertical={2} />}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+                        {/* Ein Tipp heißt „aufgebraucht" UND setzt es wieder
+                            auf die Liste. Das ist im Alltag EINE Handlung: Wer
+                            merkt, dass die Milch leer ist, will Milch kaufen.
+                            Aufbrauchen ohne Nachkaufen ist der seltenere Fall
+                            und liegt deshalb hinter dem Stift. */}
+                        <PressableScale
+                          accessibilityLabel={`${a.text} ist aufgebraucht`}
+                          accessibilityHint="Kommt damit wieder auf die Einkaufsliste"
+                          onPress={() => {
+                            hapticSelect();
+                            anstossen(a.id, () => aufgebraucht.mutate(a.id));
+                          }}
+                          pressedScale={0.99}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1, paddingVertical: Spacing.sm + 2 }}
+                        >
+                          <Haken an={!markiert.has(a.id)} />
+                          <View style={{ flex: 1 }}>
+                            <Type variant="body" tone="text3" numberOfLines={1}>{a.text}</Type>
+                            {/* Das Alter ohne jede Wertung: keine Farbe, keine
+                                Warnung. Die App weiß nicht, was in eurem
+                                Schrank verdirbt — sie sagt nur, wie alt ihre
+                                eigene Auskunft ist. */}
+                            <Type variant="caption" tone="text3" numberOfLines={1}>
+                              {imVorratSeit(a)}
+                            </Type>
+                          </View>
+                        </PressableScale>
+                        <PressableScale
+                          accessibilityLabel={auf ? `${a.text} fertig bearbeiten` : `${a.text} bearbeiten`}
+                          onPress={() => {
+                            hapticSelect();
+                            setBearbeitet(auf ? null : a.id);
+                          }}
+                          style={{ padding: Spacing.xs }}
+                        >
+                          <Pencil size={16} color={auf ? colors.accentA : colors.text3} strokeWidth={2} />
+                        </PressableScale>
+                      </View>
+                      </Listenzeile>
+
+                      {auf && (
+                        <Faltet>
+                          <View style={{ paddingBottom: Spacing.sm, paddingLeft: Spacing.xl }}>
+                            {/* DERSELBE Editor wie auf der Liste, nur mit
+                                anderer Handlung unten. Der Stift soll überall
+                                dasselbe bedeuten — ein Stift, der hier nur
+                                löschen könnte, wäre ein anderes Werkzeug mit
+                                demselben Zeichen. Umbenennen ist im Schrank
+                                außerdem echter Bedarf: Gekauft wurde „Milch",
+                                dasteht „Hafermilch". */}
+                            <Mulde>
+                              <MuldenFeldZeile
+                                breit
+                                label="Was"
+                                eingabeLabel={`${a.text} umbenennen`}
+                                platzhalter="Was?"
+                                wert={a.text}
+                                onSichern={(v) => v && aendern.mutate({ id: a.id, patch: { text: v } })}
+                              />
+                              <MuldenFeldZeile
+                                letzte
+                                label="Menge"
+                                eingabeLabel={`Menge von ${a.text}`}
+                                platzhalter="egal"
+                                wert={a.menge}
+                                onSichern={(v) => aendern.mutate({ id: a.id, patch: { menge: v } })}
+                              />
+                              {/* Nicht „von der Liste nehmen": Hier geht es
+                                  ohne Nachkaufen weg — das ist der seltenere
+                                  Fall, den der Tipp auf die Zeile nicht
+                                  abdeckt. */}
+                              <MuldenHandlung
+                                label="Aus dem Vorrat nehmen"
+                                accessibilityLabel={`${a.text} aus dem Vorrat nehmen, ohne es nachzukaufen`}
+                                onPress={() => {
+                                  hapticSelect();
+                                  setBearbeitet(null);
+                                  loeschen.mutate(a.id);
+                                }}
+                              />
+                            </Mulde>
+                          </View>
+                        </Faltet>
+                      )}
+                    </View>
+                    );
+                  })}
+                  {restVorrat > 0 && (
+                    <Type variant="caption" tone="text3" style={{ paddingTop: Spacing.sm }}>
+                      {`… und ${restVorrat} weitere`}
+                    </Type>
+                  )}
+                </GlassPanel>
               </Faltet>
             )}
           </Faltet>

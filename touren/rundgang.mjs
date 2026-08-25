@@ -267,6 +267,56 @@ pruef('von dort kommt es zurück', t.includes('1 Wunsch'), t.slice(0, 400));
 // gestrichen.)
 pruef('samt seiner Zutaten', t.includes('2 Zutaten'), t.slice(0, 600));
 
+console.log('\n7b) Der Vorrat: einräumen wirft nichts weg');
+// Der Fehler, für den es den Vorrat gibt: Vorher LÖSCHTE „Wagen leeren", und
+// damit fiel ein Gericht, dessen Zutaten am Samstag gekauft wurden, am Sonntag
+// zurück auf „fehlt". Diese Strecke fährt genau das nach — mit eigenen
+// Sachen, damit sie nicht am Zustand der Abschnitte davor hängt.
+await tab('Einkauf');
+await schreibe('Etwas hinzufügen', 'Reis');
+await schreibe('Etwas hinzufügen', 'Kokosmilch');
+
+await tab('Essen');
+await schreibe('Essenswunsch eintragen', 'Curry');
+await tippe('Curry öffnen');
+for (const z of ['Reis', 'Kokosmilch']) await schreibe('Zutat hinzufügen', z);
+pruef('geplant allein macht das Curry nicht kochbar', (await zeilen('Curry: alles da')) === 0);
+
+await tab('Einkauf');
+for (const x of ['Reis', 'Kokosmilch']) await tippe(`${x} abhaken`);
+await tab('Essen');
+pruef('gekauft macht es kochbar', (await zeilen('Curry: alles da')) === 1);
+
+await tab('Einkauf');
+// Abschnitt 2 hat den Wagen schon einmal aufgeklappt, und er bleibt es. Blind
+// zu tippen hieße, ihn wieder zuzuklappen — dann wäre „Einräumen" nicht da.
+if ((await zeilen('Wagen ansehen')) > 0) await tippe('Wagen ansehen');
+await tippe('Wagen in den Vorrat einräumen');
+t = await text();
+// Eine ZAHL, keine feste Zahl: In den Abschnitten davor ist schon einiges in
+// den Wagen gewandert, und Einräumen nimmt alles mit. Was hier zählt, ist die
+// Bewegung, nicht der Kassenzettel.
+const vorratZahl = (s) => Number(/IM VORRAT · (\d+)/i.exec(s)?.[1] ?? -1);
+const vorherImVorrat = vorratZahl(t);
+pruef('nach dem Einräumen steht der Vorrat da', vorherImVorrat >= 2, t.slice(0, 500));
+pruef('und der Wagen ist leer', !enthaelt(t, 'Im Wagen ·'), t.slice(0, 500));
+
+await tab('Essen');
+// DER Punkt dieses Abschnitts.
+pruef('das Curry bleibt kochbar — der Einkauf ist nicht vergessen', (await zeilen('Curry: alles da')) === 1);
+t = await text();
+pruef('und die Zutat sagt, WARUM sie als vorhanden gilt', enthaelt(t, 'im Vorrat'), t.slice(0, 900));
+
+await tab('Einkauf');
+await tippe('Vorrat ansehen');
+await tippe('Reis ist aufgebraucht');
+t = await text();
+pruef('aufgebraucht heißt: wieder auf der Liste', (await zeilen('Reis abhaken')) === 1, t.slice(0, 500));
+pruef('und der Vorrat ist um eins kürzer', vorratZahl(t) === vorherImVorrat - 1, `${vorratZahl(t)} statt ${vorherImVorrat - 1}`);
+
+await tab('Essen');
+pruef('ohne Reis ist das Curry nicht mehr kochbar', (await zeilen('Curry: alles da')) === 0);
+
 console.log('\n8) Der Haptik-Schalter hat genau die Gestalt, die gemessen wurde');
 // Nicht ob es TICKT — das kann kein Browser auf einem Schreibtisch sagen. Wohl
 // aber, ob der Aufbau noch der ist, der auf einem iPhone 14 Pro nachweislich

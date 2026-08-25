@@ -42,6 +42,7 @@ function baueArtikel(): Ablage<Artikel, NeuerArtikel> {
       text: e.text.trim(),
       menge: e.menge?.trim() || null,
       erledigtAm: null,
+      vorratAb: null,
       vonWem: e.vonWem ?? null,
       sort,
     }),

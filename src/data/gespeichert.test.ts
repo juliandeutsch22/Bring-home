@@ -16,6 +16,7 @@ const artikel = (p: Partial<Artikel> & { id: string }): Artikel => ({
   text: 'Milch',
   menge: null,
   erledigtAm: null,
+  vorratAb: null,
   vonWem: null,
   sort: 0,
   updatedAt: vorTagen(1),
