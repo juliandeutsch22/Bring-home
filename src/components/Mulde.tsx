@@ -277,7 +277,15 @@ export function MuldenZeile({
     <View>
       {breit ? (
         <View style={{ paddingLeft: links, paddingRight: POLSTER, paddingVertical: Spacing.sm + 2, gap: 2 }}>
-          <Type variant="caption" tone="text3" numberOfLines={1}>{label}</Type>
+          {/* `text2`, nicht `text3` — und zwar aus derselben Überlegung, aus
+              der die Zeile daneben (unten, `!breit`) schon immer `text2`
+              trägt: Das hier ist die BEZEICHNUNG des Feldes, nicht eine leise
+              Nebenauskunft. Gemessen war sie mit `text3` bei 3,08:1, also
+              unter der Schwelle 4,5:1 für Kleintext (10 px); mit `text2` sind
+              es 7,4:1. Dass beide Zweige jetzt denselben Ton tragen, ist der
+              eigentliche Gewinn: „Was" und „Menge" stehen untereinander und
+              sahen vorher verschieden wichtig aus, obwohl sie dasselbe sind. */}
+          <Type variant="caption" tone="text2" numberOfLines={1}>{label}</Type>
           {children}
         </View>
       ) : (
