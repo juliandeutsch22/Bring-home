@@ -15,8 +15,10 @@
 //  3. Dann gar keine Fläche mehr. Ehrlich, aber ohne Auskunft: Nichts sagte
 //     mehr, wo der Block anfängt und aufhört.
 //  4. Dann erhaben und hell — Lichtgrat oben, Schattengrat unten.
-//  5. Jetzt: dieselbe HELLE Fläche wie in 4, aber der Meißel wieder wie in 2.
+//  5. Dieselbe HELLE Fläche wie in 4, aber der Meißel wieder wie in 2:
 //     Schnittkante oben, Lichtgrat unten.
+//  6. Jetzt zusätzlich der Schatten, den die Oberkante nach innen wirft — die
+//     eine Ebene, die eine Kerbe wirklich tief macht (siehe `INNENSCHATTEN`).
 //
 // Warum eine helle Vertiefung nicht widersinnig ist: Was den Block in 2 zum
 // Fremdteil machte, war die TÖNUNG, nicht die Kante. Eine dunkle Fläche mitten
@@ -31,6 +33,7 @@
 // Abweichung — Fassung 2 war physikalisch korrekt und sah trotzdem falsch aus.
 //
 // Der Preis, den die helle Fläche kostet, steht in `FUELLUNG`.
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
@@ -82,16 +85,51 @@ const FUELLUNG = { hell: 'rgba(255,255,255,0.65)', dunkel: 'rgba(255,255,255,0.0
 const GRAT = 2;
 
 /**
+ * Der Schlagschatten der Oberkante, nach innen — das, was eine Vertiefung
+ * wirklich tief macht.
+ *
+ * Erwogen und verworfen wurde stattdessen eine dunkle Linie RUNDUM. Sie hätte
+ * getrennt, aber nicht vertieft: Ein Rand ist auf allen vier Seiten gleich
+ * dunkel, und das kann kein Licht. Gemessen war bei der Rand-Fassung die linke
+ * Flanke 231,5 und die rechte 237,7 — beide dunkel, also ohne Richtung. Die
+ * Kerbe wurde dadurch nicht tiefer, nur umrissen; dazu wäre unten eine dunkle
+ * Linie direkt unter dem weißen Lichtgrat gelandet.
+ *
+ * Der Verlauf hier hat eine Richtung: Er beginnt unter der Schnittkante und
+ * läuft nach unten aus, so wie die obere Innenwand auf den Grund schattet.
+ *
+ *   Deckkraft   unter der Kante   3 px   6 px   12 px   Fläche
+ *   ohne              251          251    251    251     250
+ *   0,06              240          241    243    248     250
+ *   0,10              231          234    238    246     250   ← hier
+ *   0,16              220          224    230    243     250
+ *
+ * 0,10 ist der Punkt, an dem der Verlauf als Schatten liest und nicht als
+ * Balken: Nach 12 px ist er praktisch weg, die Fläche bleibt also Fläche. Ab
+ * 0,16 legt sich ein sichtbares Band über die oberste Zeile. Wer es leiser
+ * mag, nimmt 0,06 — dann ist die Kerbe flacher, aber nichts stimmt weniger.
+ *
+ * Dunkel ist UNGEPRÜFT (die App läuft nur hell).
+ */
+const INNENSCHATTEN = {
+  hell: ['rgba(45,40,28,0.10)', 'rgba(45,40,28,0)'] as const,
+  dunkel: ['rgba(0,0,0,0.45)', 'rgba(0,0,0,0)'] as const,
+};
+/** Wie weit der Schatten reicht. Danach ist der Grund wieder Grund. */
+const SCHATTEN_TIEFE = 16;
+
+/**
  * Der Block: eine flache Mulde im Stein, mit hell ausgeschliffenem Grund.
  *
- * Sie trägt bewusst KEINEN Schlagschatten. Die frühere dunkle Fassung hatte
- * einen nach innen, und genau der machte aus der Vertiefung ein eingesetztes
- * Teil. Was die Stufe erzählt, sind allein die zwei Grate — und die sind,
- * anders als ein Schatten, gerichtet: Schnitt oben, Licht unten, wie in einer
- * Kerbe unter Licht von links oben.
+ * Drei Ebenen erzählen die Stufe, alle drei gerichtet — Licht kommt wie überall
+ * in dieser App von links oben:
  *
- * Und keine Umrandung, aus demselben Grund wie bei der Steinplatte: Wo eine
- * Kante behauen ist, wäre der Strich der letzte Rest „gezeichnetes Rechteck".
+ *  · die Schnittkante oben,
+ *  · ihr Schatten, der von dort nach innen ausläuft,
+ *  · der Lichtgrat unten, wo die untere Innenwand das Licht fängt.
+ *
+ * Keine Umrandung, aus demselben Grund wie bei der Steinplatte: Wo eine Kante
+ * behauen ist, wäre der Strich der letzte Rest „gezeichnetes Rechteck".
  */
 export function Mulde({ children }: { children: React.ReactNode }) {
   const dunkel = useScheme() === 'dark';
@@ -112,6 +150,14 @@ export function Mulde({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
+      {/* Der Schatten beginnt UNTER der Schnittkante, nicht an ihr: Sonst
+          addierten sich Grat und Verlauf an derselben Zeile, und die Kante
+          würde beliebig dunkel statt scharf. */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[...(dunkel ? INNENSCHATTEN.dunkel : INNENSCHATTEN.hell)]}
+        style={{ position: 'absolute', top: GRAT, left: 0, right: 0, height: SCHATTEN_TIEFE }}
+      />
       {/* OBEN die Schnittkante: In einer Vertiefung liegt die obere Innenwand
           im Schatten, weil das Licht von links oben darüber hinwegstreicht.
           Sie ist der Grat, der die Stufe wirklich erzählt — gemessen −31,6
